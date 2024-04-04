@@ -128,6 +128,7 @@ contract CarvProtocalService is ERC7231,AccessControlUpgradeable{
     event ReportTeeAttestation(
         address tee_address,
         string campaign_id,
+        bytes32 attestation_id,
         string attestation
     );
 
@@ -335,7 +336,7 @@ contract CarvProtocalService is ERC7231,AccessControlUpgradeable{
         bytes32 attestation_id = keccak256(bytes(attestation));
 
         _attestation_id_list.push(attestation_id);
-        emit ReportTeeAttestation(msg.sender,campaign_id,attestation);
+        emit ReportTeeAttestation(msg.sender,campaign_id,attestation_id,attestation);
 
     }
 
