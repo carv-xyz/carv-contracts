@@ -138,6 +138,12 @@ contract CarvProtocalService is ERC7231,AccessControlUpgradeable{
         bool result
     );
 
+    event VerifyAttestationBatch(
+        address verifier_address,
+        bytes32[] attestation_ids,
+        bool[] results
+    );
+
     /**
         @notice Initializes CampaignsService, creates and grants {msg.sender} the admin role,
      */
@@ -348,7 +354,21 @@ contract CarvProtocalService is ERC7231,AccessControlUpgradeable{
         emit VerifyAttestation(msg.sender,attestation_id,result);
    }
 
-    function _is_exit_in_attestation_list(bytes32 attestation_id) view internal returns(bool){
+
+   function verify_attestation_batch(bytes32[] calldata attestation_ids,bool[] calldata results)external only_verifiers{
+
+        uint256 nLen = attestation_ids.length;
+        for(uint256 i = 0 ;i < nLen ;i ++){
+
+            require(_is_exit_in_attestation_list(attestation_ids[i]),"attestation is not exist");
+            _attestation_id_verifier_result_map[attestation_ids[i]][msg.sender] = results[i];
+        }
+
+        emit VerifyAttestationBatch(msg.sender,attestation_ids,results);
+   }
+
+
+   function _is_exit_in_attestation_list(bytes32 attestation_id) view internal returns(bool){
 
         for(uint256 i = 0 ;i < _attestation_id_list.length ;i ++ ){
 
@@ -359,7 +379,7 @@ contract CarvProtocalService is ERC7231,AccessControlUpgradeable{
 
         return false;
 
-    }
+   }
 
     /**
      * @notice get_user_by_address  the campaign infomation
