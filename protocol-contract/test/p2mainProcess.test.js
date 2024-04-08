@@ -41,7 +41,6 @@ describe(`main process`, () => {
     console.log("user       :" + user.address);
     console.log("tee        :" + tee.address);
 
-    //
     usdtContract = await deployContract(partner, "TestERC20", "USDT", "USDT", totalSupply);
 
     campaignsServiceContract = await deployUpgradeContract(
@@ -51,12 +50,14 @@ describe(`main process`, () => {
     let isSucess = await isContractTransferSuccess(
       await usdtContract.connect(partner).approve(campaignsServiceContract.address,amount)
     )
+
     console.log("approve is ",isSucess);
 
 
   })
 
   async function submit_campaign() {
+
     
     let requirementsJson = 
     [
@@ -256,25 +257,65 @@ describe(`main process`, () => {
   })
 
 
-  it('5.TEE verify campaign data and contract pay for user ', async function () {
+  // it('5.TEE verify campaign data and contract pay for user ', async function () {
+
+
+
+  //   let isSucess = await isContractTransferSuccess(
+
+  //     await campaignsServiceContract.connect(deployer).add_tee_role(tee.address),
+  //     await usdtContract.connect(deployer).approve(campaignsServiceContract.address,20),
+  //     await campaignsServiceContract.connect(tee).verify_campaign_user(
+  //       user.address, campaign_id,"xyz 1234")
+  //   )
+
+  //   if (isSucess) {
+  //     let proof = await campaignsServiceContract.get_proof_by_address(user.address, campaign_id)
+
+  //     assert.equal(proof, "xyz 1234")
+  //   }
+
+  // })
+
+  // function report_tee_attestation(string calldata campaign_id,string calldata attestation) external only_tees{ 
+  it('5.TEE report tee attestation', async function () {
 
 
 
     let isSucess = await isContractTransferSuccess(
 
       await campaignsServiceContract.connect(deployer).add_tee_role(tee.address),
-      await usdtContract.connect(deployer).approve(campaignsServiceContract.address,20),
-      await campaignsServiceContract.connect(tee).verify_campaign_user(
-        user.address, campaign_id,"xyz 1234")
+      await campaignsServiceContract.connect(tee).report_tee_attestation(
+        campaign_id,"xyz 1234")
     )
 
     if (isSucess) {
-      let proof = await campaignsServiceContract.get_proof_by_address(user.address, campaign_id)
-
-      assert.equal(proof, "xyz 1234")
+      let proofs = await campaignsServiceContract.get_proof_list()
+      // console.log(proofs);
+      assert.equal(proofs[0], "0x04687ed6a16affd383bc95916f149ff3098584a0ab1f746f894a52d79c72262b")
     }
 
   })
-
   
+
+  it('6.verifier verify attestation ', async function () {
+
+
+    let isSucess = await isContractTransferSuccess(
+
+      await campaignsServiceContract.connect(deployer).add_verifier_role(deployer.address),
+      await campaignsServiceContract.connect(deployer).verify_attestation(
+        "0x04687ed6a16affd383bc95916f149ff3098584a0ab1f746f894a52d79c72262b",true),
+    )
+
+    if (isSucess) {
+      let result = await campaignsServiceContract.get_attestation_result(
+          "0x04687ed6a16affd383bc95916f149ff3098584a0ab1f746f894a52d79c72262b",
+          deployer.address
+      )
+      // console.log(proofs);
+      assert.equal(result,true);
+    }
+
+  })
 })

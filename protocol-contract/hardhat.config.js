@@ -32,7 +32,10 @@ module.exports = {
       chainId:100,
       accounts:
       [
-        process.env.privateKey
+        { privateKey:"0xa6392433fe30f2bf8564228240eddd41c7ad12ab5332438254054896790ceebe",balance:"10000000000000000000000" },
+        { privateKey:"0xf143b04240e065984bc0507eb1583234643d64c948e1e0ae2ed4abf7d7aed06a",balance:"10000000000000000000000" },
+        { privateKey:"0x49b9dd4e00cb10e691abaa1de4047f9c9d98b72b9ce43e1e12959b22f56a0289",balance:"10000000000000000000000" },
+        { privateKey:"0xada29a473e2b777403e7d2dc3876c5be03ca6b60d97e37e9bd335b1ce05a2680",balance:"10000000000000000000000" },
       ],
       blockGasLimit: 8000000
     },

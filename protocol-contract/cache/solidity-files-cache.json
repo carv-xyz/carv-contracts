@@ -1710,8 +1710,8 @@
       ]
     },
     "/Users/xuxinlai/carv/carv-contracts/protocol-contract/contracts/CarvProtocalService.sol": {
-      "lastModificationDate": 1707191968297,
-      "contentHash": "5e14e708b97be2db753dc2f9b29ca6c3",
+      "lastModificationDate": 1712284862135,
+      "contentHash": "573c725e7064d94a5dbdd222dca1104b",
       "sourceName": "contracts/CarvProtocalService.sol",
       "solcConfig": {
         "version": "0.8.17",

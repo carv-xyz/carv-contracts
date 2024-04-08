@@ -68,8 +68,7 @@ async function deployContract(account, contractName, ...args) {
 
     const contractFactory = await ethers.getContractFactory(contractName, account)
     const contract = await contractFactory.connect(account).deploy(
-        ...args,
-        { gasPrice, gasLimit ,nonce:159}
+        ...args
     );
 
     // console.log(contractName.padEnd(fixLen, ' ') + " address is : ", contract.address);
@@ -103,7 +102,7 @@ async function deployUpgradeContract(account, contractName, ...args) {
 async function isContractTransferSuccess(txObj) {
 
     let repObj = await txObj.wait();
-    console.log("xxl result is ",repObj);
+    // console.log("xxl result is ",repObj);
     if (repObj.status == 1) {
         return true
     }
@@ -631,7 +630,8 @@ let nameConfigMap = {
     "Campaigns":"CAMPAIGNS_CONTRACT_ADDRESS",
     "Rewards":"REWARDS_CONTRACT_ADDRESS",
     "CampaignsService":"CAMPAIGNS_SERVICE_CONTRACT_ADDRESS",
-    "CarvID":"CARV_ID_CONTRACT_ADDRESS"
+    "CarvID":"CARV_ID_CONTRACT_ADDRESS",
+    "CarvProtocalService":"CARV_PROTOCAL_SERVICE_CONTRACT_ADDRESS"
 }
 
 async function upgradeByContractName(contractName){
