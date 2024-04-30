@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "./ERC7231.sol";
 import "./CarvProtocolNFT.sol";
+import "./interfaces/ICarvVault.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -12,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "hardhat/console.sol";
 
 contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
-    address private _rewards_address;
+    address public vault_address;
     address private _admin_address;
 
     bytes32 public constant TEE_ROLE = keccak256("TEE_ROLE");
@@ -22,7 +23,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     uint private _carv_id;
     string private _campaign_id;
     string private _campaign_info;
-    address public pay_address;
 
     bytes32[] public attestation_id_list;
     address[] public verifier_list;
@@ -170,22 +170,10 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         address rewards_address
     ) public initializer {
         _admin_address = msg.sender;
-        _rewards_address = rewards_address;
+        vault_address = rewards_address;
         _cur_token_id = 1;
 
         super._setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    }
-
-    function supportsInterface(
-        bytes4 interfaceId
-    )
-        public
-        view
-        virtual
-        override(ERC7231, AccessControlUpgradeable)
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId);
     }
 
     function setTeeInfo(
@@ -197,24 +185,17 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     }
 
     /**
-        @notice add_tee_role
-     */
-    function add_tee_role(address tee_address) external only_admin {
-        _setupRole(TEE_ROLE, tee_address);
-    }
-
-    /**
         @notice set_pay_address
      */
-    function set_pay_address(address _pay_address) external only_admin {
-        pay_address = _pay_address;
+    function set_vault_address(address _vault_address) external only_admin {
+        vault_address = _vault_address;
     }
 
     /**
         @notice get_verifier_list
      */
     function set_vrf_address(address _vrf_address) external only_admin {
-        _vrf_address = _vrf_address;
+        vrf_address = _vrf_address;
     }
 
     /**
@@ -231,6 +212,13 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         uint256 _verifier_pass_threshold
     ) external only_admin {
         verifier_pass_threshold = _verifier_pass_threshold;
+    }
+
+    /**
+        @notice add_tee_role
+     */
+    function add_tee_role(address tee_address) external only_admin {
+        _setupRole(TEE_ROLE, tee_address);
     }
 
     /**
@@ -283,11 +271,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         @param owner Address of current token owner.
      */
     function pay_reward(reward calldata reward_info, address owner) internal {
-        console.log(
-            "reward_info.contract_type",
-            reward_info.contract_type,
-            reward_info.reward_amount
-        );
         if (reward_info.contract_type == 0) {
             // native token
             payable(_admin_address).transfer(reward_info.reward_amount);
@@ -383,7 +366,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
         _attestation_id_verifiers_map[attestation_id].push(msg.sender);
         if (_is_verifer_sign_enough(attestation_id) && result) {
-            pay_profit(attestation_id);
+            pay_platform_profit();
             attestation_id_result_map[attestation_id] = result;
         }
 
@@ -403,7 +386,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
             attestation_id_result_map[attestation_ids[i]] = results[i];
             _attestation_id_verifiers_map[attestation_ids[i]].push(msg.sender);
             if (_is_verifer_sign_enough(attestation_ids[i])) {
-                pay_profit(attestation_ids[i]);
+                pay_platform_profit();
                 attestation_id_result_map[attestation_ids[i]] = results[i];
             }
         }
@@ -411,18 +394,18 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         emit VerifyAttestationBatch(msg.sender, attestation_ids, results);
     }
 
-    function pay_profit(bytes32 attestation_id) internal {
-        console.log("pay_profit", _attestation_id_reward_map[attestation_id]);
-        IERC20(pay_address).transferFrom(
-            _admin_address,
-            msg.sender,
-            _attestation_id_reward_map[attestation_id]
+    function pay_platform_profit() internal {
+        uint256 profitAmount = ICarvVault(vault_address).getServiceProfit(
+            msg.sender
         );
+
+        ICarvVault(vault_address).withdrawProfit(msg.sender);
+
         emit ProfixPayed(
-            pay_address,
+            vault_address,
             _admin_address,
             msg.sender,
-            _attestation_id_reward_map[attestation_id]
+            profitAmount
         );
     }
 
@@ -466,5 +449,17 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         }
 
         return false;
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ERC7231, AccessControlUpgradeable)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
 }

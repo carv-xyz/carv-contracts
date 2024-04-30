@@ -16,7 +16,7 @@ chai.use(solidity)
 
 describe(`main process`, () => {
 
-  let usdtContract, soulContract, campaignsServiceContract, nftCarvProtocolContract;
+  let usdtContract, soulContract, campaignsServiceContract, nftCarvProtocolContract, carvVaultContract;
   let deployer, partner, user, tee, v1, v2, v3, v4, v5;
   const campaign_id = "bd0078f7-4a48-5764-92bf-353ccbcea6e2"
   const amount = 200
@@ -27,7 +27,6 @@ describe(`main process`, () => {
 
     let chainID = await getChainId();
     [deployer, partner, user, tee, v1, v2, v3, v4, v5] = await ethers.getSigners();
-    console.log(JSON.stringify(v1))
     console.log("chainID is :" + chainID);
     console.log("deployer   :" + deployer.address);
     console.log("partner    :" + partner.address);
@@ -49,16 +48,13 @@ describe(`main process`, () => {
     nftCarvProtocolContract = await deployUpgradeContract(
       deployer, "CarvProtocolNFT", "CarvProtocolNFT", "CNT"
     );
+    // deploy carv vault
+    carvVaultContract = await deployContract(deployer, "CarvVault", deployer.address, usdtContract.address);
 
     let isSucess = await isContractTransferSuccess(
       await usdtContract.connect(partner).approve(campaignsServiceContract.address, amount)
     )
     console.log("approve is ", isSucess);
-
-    isSucess = await isContractTransferSuccess(
-      await campaignsServiceContract.connect(deployer).set_pay_address(soulContract.address)
-    )
-    console.log("set_pay_address is ", isSucess);
 
     isSucess = await isContractTransferSuccess(
       await soulContract.connect(deployer).approve(campaignsServiceContract.address, amount * 100)
@@ -76,6 +72,25 @@ describe(`main process`, () => {
     console.log("set_verifier_pass_threshold is ", isSucess);
 
 
+    isSucess = await isContractTransferSuccess(
+      await carvVaultContract.connect(deployer).setServiceProfit(
+        campaignsServiceContract.address,
+        {
+          valid: true,
+          serviceAddress: campaignsServiceContract.address,
+          profitAmount: 200,
+          totalProfitAmount: 1000,
+          start_time: 1690874219888,
+          end_time: 1690874219889
+        }
+      )
+    )
+    console.log("setServiceProfit is ", isSucess);
+
+    isSucess = await isContractTransferSuccess(
+      await campaignsServiceContract.connect(deployer).set_vault_address(carvVaultContract.address)
+    )
+    console.log("set_vault_address is ", isSucess);
   })
 
   async function submit_campaign () {
@@ -305,6 +320,10 @@ describe(`main process`, () => {
       // await campaignsServiceContract.connect(deployer).add_verifier_role(deployer.address),
       // await campaignsServiceContract.connect(deployer).verify_attestation(
       //   "0x04687ed6a16affd383bc95916f149ff3098584a0ab1f746f894a52d79c72262b",true),
+      // carvVault deposit asset
+      await usdtContract.connect(partner).transfer(deployer.address, 1000),
+      await usdtContract.connect(deployer).approve(carvVaultContract.address, 1000),
+      await carvVaultContract.connect(deployer).depositProfit(campaignsServiceContract.address, 1000),
       await nftCarvProtocolContract.mint(v1.address, 1),
       await campaignsServiceContract.connect(v1).verify_attestation(
         "0x04687ed6a16affd383bc95916f149ff3098584a0ab1f746f894a52d79c72262b", true),
@@ -316,6 +335,9 @@ describe(`main process`, () => {
       )
       assert.equal(result, true);
     }
+
+    const v1Bal = await usdtContract.connect(v1).balanceOf(v1.address);
+    assert.equal(v1Bal.toString(), amount.toString());
   })
 
   it('7.verifier verify the same attestation ', async function () {
