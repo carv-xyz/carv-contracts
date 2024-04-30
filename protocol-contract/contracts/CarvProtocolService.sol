@@ -77,12 +77,14 @@ contract CarvProtocolService is ERC7231,AccessControlUpgradeable{
     address _vrf_address;
     address _nft_address;
     uint256 _verifier_pass_threshold;
-
+   mapping(address => uint256) private _address_vote_weight;
+   
     struct teeInfo{
         string publicKey;
         string mrEnclave;
     }
     mapping(address => teeInfo) _addressTeeInfo;
+    mapping(address => address) private _verifier_delegate_addresss_map;
 
     modifier only_admin() {
         _only_admin();
@@ -137,12 +139,6 @@ contract CarvProtocolService is ERC7231,AccessControlUpgradeable{
         uint256 amount
     );
 
-    event Minted(
-        address to,
-        uint256 token_id
-    );
-
-    //
     event UserCampaignData(
         uint carv_id, 
         string campaign_id, 
@@ -168,6 +164,16 @@ contract CarvProtocolService is ERC7231,AccessControlUpgradeable{
         bool[] results
     );
 
+    event Minted(
+        address to,
+        uint256 token_id
+    );
+
+    event VerifierWeightChanged
+    (
+        address from,
+        address to
+    );
 
     /**
         @notice Initializes CampaignsService, creates and grants {msg.sender} the admin role,
@@ -226,9 +232,9 @@ contract CarvProtocolService is ERC7231,AccessControlUpgradeable{
     }
 
     /**
-        @notice get_verifier_list
+        @notice set_vrf_address
      */
-    function set_vrf_address(address vrf_address) external {
+    function set_vrf_address(address vrf_address) external only_admin{
         _vrf_address = vrf_address;
     }
 
@@ -267,6 +273,7 @@ contract CarvProtocolService is ERC7231,AccessControlUpgradeable{
         return _verifier_pass_threshold;
     }
 
+
     /**
         @notice add_verifier_role
      */
@@ -276,6 +283,78 @@ contract CarvProtocolService is ERC7231,AccessControlUpgradeable{
         _setupRole(VERIFIER_ROLE, verifier_address);
 
     }
+
+    /**
+        @notice mint
+     */
+    function mint(address to) external {
+
+        // TODO 1 change to gas less
+        // TODO 2 one day limit check
+        CarvProtocolNFT(_nft_address).mint(to,_cur_token_id);
+        _address_vote_weight[to] = _address_vote_weight[to] ++ ;
+        _cur_token_id ++ ;
+
+        emit Minted(to,_cur_token_id);
+
+    }
+
+    /**
+        @notice verifier_delegate
+     */
+    function verifier_delegate(address target_address) external {
+
+        // TODO 1 change to gas less
+        // TODO 2 one day limit check
+        require( _verifier_delegate_addresss_map[msg.sender] == address(0),"already been deplegtade");
+
+        _verifier_weight_changed(msg.sender,target_address);
+        _verifier_delegate_addresss_map[msg.sender] = target_address;
+    }
+
+    /**
+        @notice verifier_redelegate
+     */
+    function verifier_redelegate(address target_address) public {
+
+        // TODO 1 change to gas less
+        // TODO 2 one day limit check
+        require(_verifier_delegate_addresss_map[msg.sender] != address(0),"has not ben been deplegtade yet");
+
+        address old_delegated_address =_verifier_delegate_addresss_map[msg.sender];
+        
+        _verifier_weight_changed(old_delegated_address,target_address);
+        _verifier_delegate_addresss_map[msg.sender] = target_address;
+    }
+
+    /**
+        @notice verifier_undelegate
+     */
+    function verifier_undelegate() external {
+
+        // TODO 1 change to gas less
+        // TODO 2 one day limit check
+        require(_verifier_delegate_addresss_map[msg.sender] != address(0),"has not ben been deplegtade yet");
+
+        address old_delegated_address =_verifier_delegate_addresss_map[msg.sender];
+        
+        _verifier_weight_changed(old_delegated_address,msg.sender);
+        _verifier_delegate_addresss_map[msg.sender] = address(0);
+    }
+
+    /**
+        @notice verifier_undelegate
+     */
+    function _verifier_weight_changed(address from,address to) internal {
+
+        _address_vote_weight[from] --  ;
+        _address_vote_weight[to] ++ ;
+
+        emit VerifierWeightChanged(from,to);
+    }
+
+    
+
 
     /**
         @notice Used to gain custody of deposited token.
@@ -295,6 +374,26 @@ contract CarvProtocolService is ERC7231,AccessControlUpgradeable{
         _campain_reward_map[reward_info.campaign_id] = reward_info;
 
         emit SubmitCampaign(reward_info.contract_address,campaign_info.campaign_id,campaign_info.requirements);
+    }
+
+    /**
+        @notice set_identities_root
+     */
+    // and check profile version
+    function set_identities_root(
+        address user_address,
+        string calldata user_profile_path,
+        uint256 profile_version,
+        bytes32 multiIdentitiesRoot,
+        bytes calldata signature
+    ) external {
+
+        _address_user_map[user_address].user_profile_path = user_profile_path;
+        _address_user_map[user_address].profile_version = profile_version;
+        _address_user_map[user_address].signature = signature;
+
+        setIdentitiesRoot(_address_user_map[user_address].token_id,multiIdentitiesRoot);
+
     }
 
     /**
@@ -342,25 +441,7 @@ contract CarvProtocolService is ERC7231,AccessControlUpgradeable{
         }
     }
 
-    /**
-        @notice set_identities_root
-     */
-    // and check profile version
-    function set_identities_root(
-        address user_address,
-        string calldata user_profile_path,
-        uint256 profile_version,
-        bytes32 multiIdentitiesRoot,
-        bytes calldata signature
-    ) external {
 
-        _address_user_map[user_address].user_profile_path = user_profile_path;
-        _address_user_map[user_address].profile_version = profile_version;
-        _address_user_map[user_address].signature = signature;
-
-        setIdentitiesRoot(_address_user_map[user_address].token_id,multiIdentitiesRoot);
-
-    }
 
     /**
      * @notice get_user_by_address  the campaign infomation
@@ -459,11 +540,8 @@ contract CarvProtocolService is ERC7231,AccessControlUpgradeable{
 
    function _is_verifer_sign_enough(bytes32 attestation_id) internal view returns(bool){
 
-        uint256 total_sign = _attestation_id_verifiers_map[attestation_id].length;
-        if(total_sign >= _verifier_pass_threshold){
-            return true;
-        }
-
+        // TODO add vote weight logic
+        // uint256 total_sign = 
         return false;
    }
 

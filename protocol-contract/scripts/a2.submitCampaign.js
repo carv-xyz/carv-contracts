@@ -37,7 +37,7 @@ const main = async () => {
 
 
     let carvAddress = await readConfig("1config","CARV_PROTOCAL_SERVICE_CONTRACT_ADDRESS");
-    let campaignsServiceContract = await attachContract("CarvProtocalService",carvAddress,admin);
+    let campaignsServiceContract = await attachContract("CarvProtocolService",carvAddress,admin);
     let requirementsJson = 
     [
       { 

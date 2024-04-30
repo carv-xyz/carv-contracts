@@ -144,104 +144,104 @@
             "offset": 0,
             "slot": "203",
             "type": "t_address",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:14"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:14"
           },
           {
             "label": "_admin_address",
             "offset": 0,
             "slot": "204",
             "type": "t_address",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:15"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:15"
           },
           {
             "label": "_cur_token_id",
             "offset": 0,
             "slot": "205",
             "type": "t_uint256",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:19"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:19"
           },
           {
             "label": "_id_uri_map",
             "offset": 0,
             "slot": "206",
             "type": "t_mapping(t_uint256,t_string_storage)",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:20"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:20"
           },
           {
             "label": "_addresd_id_map",
             "offset": 0,
             "slot": "207",
             "type": "t_mapping(t_address,t_uint256)",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:21"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:21"
           },
           {
             "label": "_carv_id",
             "offset": 0,
             "slot": "208",
             "type": "t_uint256",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:23"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:23"
           },
           {
             "label": "_campaign_id",
             "offset": 0,
             "slot": "209",
             "type": "t_string_storage",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:24"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:24"
           },
           {
             "label": "_campaign_info",
             "offset": 0,
             "slot": "210",
             "type": "t_string_storage",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:25"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:25"
           },
           {
             "label": "campain_reward_map",
             "offset": 0,
             "slot": "211",
             "type": "t_mapping(t_string_memory_ptr,t_struct(reward)11666_storage)",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:57"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:57"
           },
           {
             "label": "id_campaign_map",
             "offset": 0,
             "slot": "212",
             "type": "t_mapping(t_string_memory_ptr,t_struct(campaign)11689_storage)",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:58"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:58"
           },
           {
             "label": "_user_campaign_map",
             "offset": 0,
             "slot": "213",
             "type": "t_mapping(t_uint256,t_mapping(t_string_memory_ptr,t_string_storage))",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:60"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:60"
           },
           {
             "label": "address_user_map",
             "offset": 0,
             "slot": "214",
             "type": "t_mapping(t_address,t_struct(user)11698_storage)",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:62"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:62"
           },
           {
             "label": "_proof_campaign_map",
             "offset": 0,
             "slot": "215",
             "type": "t_mapping(t_address,t_mapping(t_string_memory_ptr,t_string_storage))",
-            "contract": "CarvProtocalService",
-            "src": "contracts/CarvProtocalService.sol:64"
+            "contract": "CarvProtocolService",
+            "src": "contracts/CarvProtocolService.sol:64"
           }
         ],
         "types": {
@@ -286,7 +286,7 @@
             "numberOfBytes": "32"
           },
           "t_mapping(t_address,t_struct(user)11698_storage)": {
-            "label": "mapping(address => struct CarvProtocalService.user)",
+            "label": "mapping(address => struct CarvProtocolService.user)",
             "numberOfBytes": "32"
           },
           "t_mapping(t_address,t_uint256)": {
@@ -306,11 +306,11 @@
             "numberOfBytes": "32"
           },
           "t_mapping(t_string_memory_ptr,t_struct(campaign)11689_storage)": {
-            "label": "mapping(string => struct CarvProtocalService.campaign)",
+            "label": "mapping(string => struct CarvProtocolService.campaign)",
             "numberOfBytes": "32"
           },
           "t_mapping(t_string_memory_ptr,t_struct(reward)11666_storage)": {
-            "label": "mapping(string => struct CarvProtocalService.reward)",
+            "label": "mapping(string => struct CarvProtocolService.reward)",
             "numberOfBytes": "32"
           },
           "t_mapping(t_uint256,t_address)": {
@@ -360,7 +360,7 @@
             "numberOfBytes": "64"
           },
           "t_struct(campaign)11689_storage": {
-            "label": "struct CarvProtocalService.campaign",
+            "label": "struct CarvProtocolService.campaign",
             "members": [
               {
                 "label": "campaign_id",
@@ -432,7 +432,7 @@
             "numberOfBytes": "320"
           },
           "t_struct(reward)11666_storage": {
-            "label": "struct CarvProtocalService.reward",
+            "label": "struct CarvProtocolService.reward",
             "members": [
               {
                 "label": "campaign_id",
@@ -474,7 +474,7 @@
             "numberOfBytes": "160"
           },
           "t_struct(user)11698_storage": {
-            "label": "struct CarvProtocalService.user",
+            "label": "struct CarvProtocolService.user",
             "members": [
               {
                 "label": "token_id",

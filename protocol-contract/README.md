@@ -38,11 +38,15 @@ https://sepolia.etherscan.io/
 https://thegraph.com/studio/subgraph/campaigns/playground/
 
 
-graph init --product hosted-service xuxinlai2002/carvprotocalservice
-cd carvprotocalservice
+graph init --product hosted-service xuxinlai2002/CarvProtocolService
+cd CarvProtocolService
 graph codegen && graph build
 
 graph auth --product hosted-service 2fb42c7ab6944cf7aef59953a6c0db15
-graph deploy --product hosted-service xuxinlai2002/carvprotocalservice
+graph deploy --product hosted-service xuxinlai2002/CarvProtocolService
 
-https://thegraph.com/hosted-service/subgraph/xuxinlai2002/carvprotocalservice
+https://thegraph.com/hosted-service/subgraph/xuxinlai2002/CarvProtocolService
+
+
+// address => has NFT 
+// 

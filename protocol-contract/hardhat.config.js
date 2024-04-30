@@ -1,9 +1,10 @@
 require('@nomiclabs/hardhat-ethers')
-require('@nomiclabs/hardhat-waffle')
+// require('@nomiclabs/hardhat-waffle')
 require('hardhat-deploy')
-require("@nomiclabs/hardhat-etherscan");
-
+// require("@nomiclabs/hardhat-etherscan");
+// require("@nomicfoundation/hardhat-verify");
 require('@openzeppelin/hardhat-upgrades');
+// require("@nomicfoundation/hardhat-toolbox")
 
 const dotenv = require("dotenv");
 dotenv.config({path: __dirname + '/.env'});
@@ -32,10 +33,15 @@ module.exports = {
       chainId:100,
       accounts:
       [
-        { privateKey:"0xa6392433fe30f2bf8564228240eddd41c7ad12ab5332438254054896790ceebe",balance:"10000000000000000000000" },
-        { privateKey:"0xf143b04240e065984bc0507eb1583234643d64c948e1e0ae2ed4abf7d7aed06a",balance:"10000000000000000000000" },
-        { privateKey:"0x49b9dd4e00cb10e691abaa1de4047f9c9d98b72b9ce43e1e12959b22f56a0289",balance:"10000000000000000000000" },
-        { privateKey:"0xada29a473e2b777403e7d2dc3876c5be03ca6b60d97e37e9bd335b1ce05a2680",balance:"10000000000000000000000" },
+        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000001",balance:"10000000000000000000000" },
+        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000002",balance:"10000000000000000000000" },
+        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000003",balance:"10000000000000000000000" },
+        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000004",balance:"10000000000000000000000" },
+        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000005",balance:"10000000000000000000000" },
+        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000006",balance:"10000000000000000000000" },
+        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000007",balance:"10000000000000000000000" },
+        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000008",balance:"10000000000000000000000" },
+        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000009",balance:"10000000000000000000000" },
       ],
       blockGasLimit: 8000000
     },
@@ -61,7 +67,7 @@ module.exports = {
     },
 
     //opbnb Testnet
-    opbnbTest:
+    opbnb:
     {
       url: `https://opbnb-testnet-rpc.bnbchain.org`,
       chainId: 5611, // Replace with the correct chainId for the "opbnb" network
@@ -79,7 +85,15 @@ module.exports = {
       [
         process.env.privateKey
       ]
-    },    
+    },
+    // https://sepolia-rollup.arbitrum.io/rpc
+    arbitrumSepolia: {
+      url: `https://sepolia-rollup.arbitrum.io/rpc`,
+      accounts: 
+      [
+        process.env.privateKey
+      ]
+    },
 
     sepolia: {
       url: `https://sepolia.infura.io/v3/${process.env.apiKey}`,
@@ -96,6 +110,15 @@ module.exports = {
     compilers: [
       {
         version: "0.8.17",
+        settings: { 
+          optimizer: {
+            enabled: true,
+            runs: 1
+          }
+        }
+      },
+      {
+        version: "0.6.12",
         settings: { 
           optimizer: {
             enabled: true,
@@ -120,7 +143,28 @@ module.exports = {
   },
 
   etherscan: {
-    apiKey: process.env.apiKey
-  },
+    apiKey: {
+      opbnb: "80d774115b27420e93a1e8fd90c86860"
+    },
+
+    customChains: [
+      {
+        network: "opbnb",
+        chainId: 5611, // Replace with the correct chainId for the "opbnb" network
+        urls: {
+          apiURL:
+            "https://open-platform.nodereal.io/80d774115b27420e93a1e8fd90c86860/op-bnb-testnet/contract/",
+          browserURL: "https://testnet.opbnbscan.com/",
+        },
+      },
+    ],
+  }
   
 }
+
+// https://etherscan.io/myapikey
+// https://opbnb.bscscan.com/myapikey
+// A9TYNSB1RZC713ZWRW44R4WY1CRYD9BDJ4
+// GBV72V9YQDNW5G8EFPBHIV86ICH35C2JYF
+
+// https://open-platform.nodereal.io/GBV72V9YQDNW5G8EFPBHIV86ICH35C2JYF/op-bnb-testnet/contract/
