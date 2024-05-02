@@ -3,14 +3,12 @@ pragma solidity ^0.8.17;
 pragma experimental ABIEncoderV2;
 
 import "./ERC7231.sol";
-import "./CarvProtocolNFT.sol";
+import "./interfaces/ICarvProtocolNFT.sol";
 import "./interfaces/ICarvVault.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-import "hardhat/console.sol";
 
 contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     address public vault_address;
@@ -19,7 +17,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     bytes32 public constant TEE_ROLE = keccak256("TEE_ROLE");
     bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
 
-    uint256 private _cur_token_id;
     uint private _carv_id;
     string private _campaign_id;
     string private _campaign_info;
@@ -78,8 +75,10 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     mapping(bytes32 => bool) public attestation_id_result_map;
     mapping(bytes32 => address[]) private _attestation_id_verifiers_map;
     mapping(bytes32 => uint256) private _attestation_id_reward_map;
-
     mapping(address => teeInfo) public addressTeeInfo;
+
+    // verifier block
+    mapping(address => uint256) public verifier_block;
 
     modifier only_admin() {
         _only_admin();
@@ -88,11 +87,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
     modifier only_tees() {
         _only_tees();
-        _;
-    }
-
-    modifier only_verifiers() {
-        _only_verifiers();
         _;
     }
 
@@ -105,14 +99,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
     function _only_tees() private view {
         require(hasRole(TEE_ROLE, msg.sender), "sender doesn't have tee role");
-    }
-
-    function _only_verifiers() private view {
-        require(
-            CarvProtocolNFT(nft_address).balanceOf(msg.sender) > 0 ||
-                hasRole(VERIFIER_ROLE, msg.sender),
-            "sender doesn't have verifier role"
-        );
     }
 
     event SubmitCampaign(
@@ -134,8 +120,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         address to_address,
         uint256 amount
     );
-
-    event Minted(address to, uint256 token_id);
 
     //
     event UserCampaignData(
@@ -167,11 +151,12 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         @notice Initializes CampaignsService, creates and grants {msg.sender} the admin role,
      */
     function __CarvProtocolService_init(
-        address rewards_address
+        address rewards_address,
+        address _nft_address
     ) public initializer {
         _admin_address = msg.sender;
         vault_address = rewards_address;
-        _cur_token_id = 1;
+        nft_address = _nft_address;
 
         super._setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -219,19 +204,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
      */
     function add_tee_role(address tee_address) external only_admin {
         _setupRole(TEE_ROLE, tee_address);
-    }
-
-    /**
-        @notice add_verifier_role
-        @param verifier_addressArr Array of verifier addresses to add.
-     */
-    function add_verifier_role(
-        address[] calldata verifier_addressArr
-    ) external only_admin {
-        for (uint256 i = 0; i < verifier_addressArr.length; i++) {
-            verifier_list.push(verifier_addressArr[i]);
-            _setupRole(VERIFIER_ROLE, verifier_addressArr[i]);
-        }
     }
 
     /**
@@ -351,10 +323,12 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         );
     }
 
-    function verify_attestation(
-        bytes32 attestation_id,
-        bool result
-    ) external only_verifiers {
+    function verify_attestation(bytes32 attestation_id, bool result) external {
+        require(
+            ICarvProtocolNFT(nft_address).address_vote_weight(msg.sender) > 0,
+            "CarvProtocolService: no vote weight"
+        );
+
         require(
             _is_exit_in_attestation_list(attestation_id),
             "attestation is not exist"
@@ -370,13 +344,25 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
             attestation_id_result_map[attestation_id] = result;
         }
 
+        require(
+            verifier_block[msg.sender] < block.number,
+            "CarvProtocolService: verifier block is invalid"
+        );
+
+        verifier_block[msg.sender] = block.number;
+
         emit VerifyAttestation(msg.sender, attestation_id, result);
     }
 
     function verify_attestation_batch(
         bytes32[] calldata attestation_ids,
         bool[] calldata results
-    ) external only_verifiers {
+    ) external {
+        require(
+            ICarvProtocolNFT(nft_address).address_vote_weight(msg.sender) > 0,
+            "CarvProtocolService: no vote weight"
+        );
+
         uint256 nLen = attestation_ids.length;
         for (uint256 i = 0; i < nLen; i++) {
             require(
@@ -393,6 +379,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
         emit VerifyAttestationBatch(msg.sender, attestation_ids, results);
     }
+
+    // ================== internal functions ==================
 
     function pay_platform_profit() internal {
         uint256 profitAmount = ICarvVault(vault_address).getServiceProfit(
@@ -430,6 +418,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function _is_verifer_sign_enough(
         bytes32 attestation_id
     ) internal view returns (bool) {
+        // TODO add vote weight logic
         uint256 total_sign = _attestation_id_verifiers_map[attestation_id]
             .length;
         if (total_sign >= verifier_pass_threshold) {
@@ -451,6 +440,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         return false;
     }
 
+    // ================== override functions ==================
     function supportsInterface(
         bytes4 interfaceId
     )

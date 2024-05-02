@@ -41,13 +41,17 @@ describe(`main process`, () => {
     usdtContract = await deployContract(partner, "TestERC20", "USDT", "USDT", totalSupply);
     soulContract = await deployContract(deployer, "TestERC20", "SOUL", "SOUL", totalSupply);
 
-    campaignsServiceContract = await deployUpgradeContract(
-      deployer, "CarvProtocolService", usdtContract.address
-    );
+
 
     nftCarvProtocolContract = await deployUpgradeContract(
       deployer, "CarvProtocolNFT", "CarvProtocolNFT", "CNT"
     );
+
+    campaignsServiceContract = await deployUpgradeContract(
+      deployer, "CarvProtocolService", usdtContract.address,
+      nftCarvProtocolContract.address
+    );
+
     // deploy carv vault
     carvVaultContract = await deployContract(deployer, "CarvVault", deployer.address, usdtContract.address);
 
@@ -295,23 +299,47 @@ describe(`main process`, () => {
 
   })
 
+  it('5-1.verifier verify attestation :can not verify no weight', async function () {
+    await expect(campaignsServiceContract.connect(deployer).verify_attestation(
+      "0x04687ed6a16affd383bc95916f149ff3098584a0ab1f746f894a52d79c72262b", true))
+      .to.be.revertedWith("CarvProtocolService: no vote weight");
+  })
 
-  it('5.verifier verify attestation : false', async function () {
+  it('5-2.verifier verify attestation : can not transfer nft', async function () {
+    await nftCarvProtocolContract.connect(deployer).add_minter_role(deployer.address);
+    await nftCarvProtocolContract.connect(deployer).mint(deployer.address);
 
+    await expect(nftCarvProtocolContract.connect(deployer).transferFrom(deployer.address, v1.address, 1))
+      .to.be.revertedWith("can not support transfer");
+  })
 
+  it('5-3.verifier verify attestation : delegate nft', async function () {
+    await nftCarvProtocolContract.connect(deployer).mint(deployer.address);
+    const bal = await nftCarvProtocolContract.balanceOf(deployer.address);
+    let weight = await nftCarvProtocolContract.address_vote_weight(deployer.address);
+    assert.equal(bal.toNumber(), weight.toNumber());
+
+    await nftCarvProtocolContract.connect(deployer).verifier_delegate([v1.address], [1]);
+    const bal1 = await nftCarvProtocolContract.balanceOf(v1.address);
+    const weight1 = await nftCarvProtocolContract.address_vote_weight(v1.address);
+
+    weight = await nftCarvProtocolContract.address_vote_weight(deployer.address);
+    assert.equal(weight.toNumber(), 1);
+    assert.equal(bal.toNumber(), weight1.toNumber() + weight.toNumber());
+  })
+  it('5-4.verifier verify attestation : delegated can verify', async function () {
+    weight = await nftCarvProtocolContract.address_vote_weight(deployer.address);
+    assert.equal(weight.toNumber(), 1);
     let isSucess = await isContractTransferSuccess(
-
-      await campaignsServiceContract.connect(deployer).add_verifier_role([deployer.address]),
       await campaignsServiceContract.connect(deployer).verify_attestation(
         "0x04687ed6a16affd383bc95916f149ff3098584a0ab1f746f894a52d79c72262b", true),
     )
-
-    if (isSucess) {
-      let result = await campaignsServiceContract.attestation_id_result_map(
-        "0x04687ed6a16affd383bc95916f149ff3098584a0ab1f746f894a52d79c72262b"
-      )
-      assert.equal(result, false);
-    }
+    assert.equal(isSucess, true);
+  })
+  it('5.5. verifier verify attestation : delegated can not by verify again', async function () {
+    await expect(campaignsServiceContract.connect(deployer).verify_attestation(
+      "0x04687ed6a16affd383bc95916f149ff3098584a0ab1f746f894a52d79c72262b", true)
+    ).to.be.revertedWith("attestation can not by verify again");
   })
 
   it('6.verifier verify attestation : true', async function () {
@@ -324,7 +352,7 @@ describe(`main process`, () => {
       await usdtContract.connect(partner).transfer(deployer.address, 1000),
       await usdtContract.connect(deployer).approve(carvVaultContract.address, 1000),
       await carvVaultContract.connect(deployer).depositProfit(campaignsServiceContract.address, 1000),
-      await nftCarvProtocolContract.mint(v1.address, 1),
+      await nftCarvProtocolContract.mint(v1.address),
       await campaignsServiceContract.connect(v1).verify_attestation(
         "0x04687ed6a16affd383bc95916f149ff3098584a0ab1f746f894a52d79c72262b", true),
     )
