@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 
 contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
     bytes32 public constant MINETR_ROLE = keccak256("MINETR_ROLE");
-    bool private _can_transfer;
+    bool public can_transfer;
     uint256 private _cur_token_id;
 
     event Minted(address to, uint256 token_id);
@@ -47,7 +47,7 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
         string memory _name,
         string memory _symbol
     ) public initializer {
-        _can_transfer = false;
+        can_transfer = false;
         __ERC721_init(_name, _symbol);
         _cur_token_id = 1;
 
@@ -71,7 +71,7 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
         address _to,
         uint256 _tokenId
     ) public virtual override {
-        require(_can_transfer, "can not support transfer");
+        require(can_transfer, "can not support transfer");
     }
 
     function safeTransferFrom(
@@ -80,7 +80,7 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
         uint256 tokenId,
         bytes memory data
     ) public virtual override {
-        require(_can_transfer, "can not support transfer");
+        require(can_transfer, "can not support transfer");
     }
 
     function transferFrom(
@@ -88,21 +88,14 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
         address to,
         uint256 tokenId
     ) public virtual override {
-        require(_can_transfer, "can not support transfer");
+        require(can_transfer, "can not support transfer");
     }
 
     /**
         @notice set_can_transfer
      */
-    function set_can_transfer(bool can_transfer) external only_admin {
-        _can_transfer = can_transfer;
-    }
-
-    /**
-        @notice get_can_transfer
-     */
-    function get_can_transfer() external view returns (bool) {
-        return _can_transfer;
+    function set_can_transfer(bool _can_transfer) external only_admin {
+        can_transfer = _can_transfer;
     }
 
     function add_minter_role(address _minter_address) external only_admin {
