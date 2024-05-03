@@ -442,7 +442,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         // TODO 2 one day limit check
         for (uint256 i = 0; i < token_ids.length; i++) {
             require(
-                ownerOf(token_ids[i]) == msg.sender,
+                ICarvProtocolNFT(nft_address).ownerOf(token_ids[i]) ==
+                    msg.sender,
                 "CarvProtocolService: not owner"
             );
             require(
@@ -471,6 +472,11 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         // TODO 1 change to gas less
         // TODO 2 one day limit check
         for (uint256 i = 0; i < token_ids.length; i++) {
+            require(
+                ICarvProtocolNFT(nft_address).ownerOf(token_ids[i]) ==
+                    msg.sender,
+                "CarvProtocolService: not owner"
+            );
             require(
                 _verifier_delegate_addresss_map[msg.sender][token_ids[i]] !=
                     address(0),
