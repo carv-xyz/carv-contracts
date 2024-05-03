@@ -6,16 +6,9 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 
 contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
     bytes32 public constant MINETR_ROLE = keccak256("MINETR_ROLE");
+
     bool public can_transfer;
-    uint256 private _cur_token_id;
 
-    event Minted(address to, uint256 token_id);
-    event VerifierWeightChanged(address from, address to);
-
-    mapping(address => uint256) public address_vote_weight;
-    // owner -> tokenId -> receiver
-    mapping(address => mapping(uint256 => address))
-        private _verifier_delegate_addresss_map;
     modifier only_admin() {
         _only_admin();
         _;
@@ -49,7 +42,6 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
     ) public initializer {
         can_transfer = false;
         __ERC721_init(_name, _symbol);
-        _cur_token_id = 1;
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -64,6 +56,10 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    function mint(address _to, uint256 _tokenId) external only_minters {
+        super._mint(_to, _tokenId);
     }
 
     function safeTransferFrom(
@@ -100,110 +96,5 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
 
     function add_minter_role(address _minter_address) external only_admin {
         _setupRole(MINETR_ROLE, _minter_address);
-    }
-
-    /**
-        @notice mint
-     */
-    function mint(address _to) external only_minters {
-        // TODO 1 change to gas less
-        // TODO 2 one day limit check
-        super._mint(_to, _cur_token_id);
-
-        address_vote_weight[_to]++;
-        _cur_token_id++;
-        emit Minted(_to, _cur_token_id);
-    }
-
-    /**
-        @notice verifier_delegate
-     */
-    function verifier_delegate(
-        address[] calldata target_address_arr,
-        uint256[] calldata token_ids
-    ) external {
-        // TODO 1 change to gas less
-        // TODO 2 one day limit check
-
-        for (uint256 i = 0; i < token_ids.length; i++) {
-            require(
-                ownerOf(token_ids[i]) == msg.sender,
-                "CarvProtocolService: not owner"
-            );
-            require(
-                _verifier_delegate_addresss_map[msg.sender][token_ids[i]] ==
-                    address(0),
-                "already been deplegtade"
-            );
-            _verifier_weight_changed(msg.sender, target_address_arr[i]);
-            _verifier_delegate_addresss_map[msg.sender][
-                token_ids[i]
-            ] = target_address_arr[i];
-        }
-    }
-
-    /**
-        @notice verifier_redelegate
-     */
-    function verifier_redelegate(
-        address[] calldata target_address_arr,
-        uint256[] calldata token_ids
-    ) public {
-        // TODO 1 change to gas less
-        // TODO 2 one day limit check
-        for (uint256 i = 0; i < token_ids.length; i++) {
-            require(
-                ownerOf(token_ids[i]) == msg.sender,
-                "CarvProtocolService: not owner"
-            );
-            require(
-                _verifier_delegate_addresss_map[msg.sender][token_ids[i]] !=
-                    address(0),
-                "has not ben been deplegtade yet"
-            );
-            address old_delegated_address = _verifier_delegate_addresss_map[
-                msg.sender
-            ][token_ids[i]];
-
-            _verifier_weight_changed(
-                old_delegated_address,
-                target_address_arr[i]
-            );
-            _verifier_delegate_addresss_map[msg.sender][
-                token_ids[i]
-            ] = target_address_arr[i];
-        }
-    }
-
-    /**
-        @notice verifier_undelegate
-     */
-    function verifier_undelegate(uint256[] calldata token_ids) external {
-        // TODO 1 change to gas less
-        // TODO 2 one day limit check
-        for (uint256 i = 0; i < token_ids.length; i++) {
-            require(
-                _verifier_delegate_addresss_map[msg.sender][token_ids[i]] !=
-                    address(0),
-                "has not ben been deplegtade yet"
-            );
-            address old_delegated_address = _verifier_delegate_addresss_map[
-                msg.sender
-            ][token_ids[i]];
-
-            _verifier_weight_changed(old_delegated_address, msg.sender);
-            _verifier_delegate_addresss_map[msg.sender][token_ids[i]] = address(
-                0
-            );
-        }
-    }
-
-    /**
-        @notice verifier_undelegate
-     */
-    function _verifier_weight_changed(address from, address to) internal {
-        address_vote_weight[from]--;
-        address_vote_weight[to]++;
-        emit VerifierWeightChanged(from, to);
     }
 }

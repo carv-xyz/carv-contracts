@@ -16,6 +16,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
     bytes32 public constant TEE_ROLE = keccak256("TEE_ROLE");
     bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
+    bytes32 public constant MINETR_ROLE = keccak256("MINETR_ROLE");
 
     uint private _carv_id;
     string private _campaign_id;
@@ -26,6 +27,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     address public vrf_address;
     address public nft_address;
     uint256 public verifier_pass_threshold;
+    uint256 private _cur_token_id;
 
     struct reward {
         string campaign_id;
@@ -79,6 +81,10 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
     // verifier block
     mapping(address => uint256) public verifier_block;
+    // owner -> tokenId -> receiver
+    mapping(address => mapping(uint256 => address))
+        private _verifier_delegate_addresss_map;
+    mapping(address => uint256) public address_vote_weight;
 
     modifier only_admin() {
         _only_admin();
@@ -147,6 +153,9 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         bool[] results
     );
 
+    event Minted(address to, uint256 token_id);
+    event VerifierWeightChanged(address from, address to);
+
     /**
         @notice Initializes CampaignsService, creates and grants {msg.sender} the admin role,
      */
@@ -157,6 +166,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         _admin_address = msg.sender;
         vault_address = rewards_address;
         nft_address = _nft_address;
+        _cur_token_id = 1;
 
         super._setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -325,7 +335,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
     function verify_attestation(bytes32 attestation_id, bool result) external {
         require(
-            ICarvProtocolNFT(nft_address).address_vote_weight(msg.sender) > 0,
+            address_vote_weight[msg.sender] > 0,
             "CarvProtocolService: no vote weight"
         );
 
@@ -378,6 +388,103 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         }
 
         emit VerifyAttestationBatch(msg.sender, attestation_ids, results);
+    }
+
+    /**
+        @notice mint
+     */
+    function mint(address _to) external {
+        // TODO 1 change to gas less
+        // TODO 2 one day limit check
+        ICarvProtocolNFT(nft_address).mint(_to, _cur_token_id);
+
+        address_vote_weight[_to]++;
+        _cur_token_id++;
+        emit Minted(_to, _cur_token_id);
+    }
+
+    /**
+        @notice verifier_delegate
+     */
+    function verifier_delegate(
+        address[] calldata target_address_arr,
+        uint256[] calldata token_ids
+    ) external {
+        // TODO 1 change to gas less
+        // TODO 2 one day limit check
+
+        for (uint256 i = 0; i < token_ids.length; i++) {
+            require(
+                ICarvProtocolNFT(nft_address).ownerOf(token_ids[i]) ==
+                    msg.sender,
+                "CarvProtocolService: not owner"
+            );
+            require(
+                _verifier_delegate_addresss_map[msg.sender][token_ids[i]] ==
+                    address(0),
+                "already been deplegtade"
+            );
+            _verifier_weight_changed(msg.sender, target_address_arr[i]);
+            _verifier_delegate_addresss_map[msg.sender][
+                token_ids[i]
+            ] = target_address_arr[i];
+        }
+    }
+
+    /**
+        @notice verifier_redelegate
+     */
+    function verifier_redelegate(
+        address[] calldata target_address_arr,
+        uint256[] calldata token_ids
+    ) public {
+        // TODO 1 change to gas less
+        // TODO 2 one day limit check
+        for (uint256 i = 0; i < token_ids.length; i++) {
+            require(
+                ownerOf(token_ids[i]) == msg.sender,
+                "CarvProtocolService: not owner"
+            );
+            require(
+                _verifier_delegate_addresss_map[msg.sender][token_ids[i]] !=
+                    address(0),
+                "has not ben been deplegtade yet"
+            );
+            address old_delegated_address = _verifier_delegate_addresss_map[
+                msg.sender
+            ][token_ids[i]];
+
+            _verifier_weight_changed(
+                old_delegated_address,
+                target_address_arr[i]
+            );
+            _verifier_delegate_addresss_map[msg.sender][
+                token_ids[i]
+            ] = target_address_arr[i];
+        }
+    }
+
+    /**
+        @notice verifier_undelegate
+     */
+    function verifier_undelegate(uint256[] calldata token_ids) external {
+        // TODO 1 change to gas less
+        // TODO 2 one day limit check
+        for (uint256 i = 0; i < token_ids.length; i++) {
+            require(
+                _verifier_delegate_addresss_map[msg.sender][token_ids[i]] !=
+                    address(0),
+                "has not ben been deplegtade yet"
+            );
+            address old_delegated_address = _verifier_delegate_addresss_map[
+                msg.sender
+            ][token_ids[i]];
+
+            _verifier_weight_changed(old_delegated_address, msg.sender);
+            _verifier_delegate_addresss_map[msg.sender][token_ids[i]] = address(
+                0
+            );
+        }
     }
 
     // ================== internal functions ==================
@@ -438,6 +545,15 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         }
 
         return false;
+    }
+
+    /**
+        @notice verifier_undelegate
+     */
+    function _verifier_weight_changed(address from, address to) internal {
+        address_vote_weight[from]--;
+        address_vote_weight[to]++;
+        emit VerifierWeightChanged(from, to);
     }
 
     // ================== override functions ==================
