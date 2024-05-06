@@ -57,7 +57,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         uint256 token_id;
         string user_profile_path;
         uint256 profile_version;
-        bytes   signature;
+        bytes signature;
     }
 
     struct teeInfo {
@@ -83,7 +83,9 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     // verifier block
     mapping(address => uint256) public verifier_block;
 
-    mapping(address => address ) private _verifier_delegate_addresss_map;
+    // owner -> tokenId -> receiver
+    mapping(address => mapping(uint256 => address))
+        private _verifier_delegate_addresss_map;
     mapping(address => uint256) public address_vote_weight;
 
     bytes32[] _attestation_id_list;
@@ -107,21 +109,23 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     struct delegateData {
         address from;
         address to;
+        uint256 tokenId;
         uint256 timestamp;
     }
 
-    uint constant private DAY_IN_SECONDS = 86400;
+    uint private constant DAY_IN_SECONDS = 86400;
     uint256 CHAIN_ID = uint256(block.chainid);
-    bytes32 EIP712_DOMAIN_HASH = keccak256(
-        abi.encode(
-            keccak256(
-                "EIP712Domain(string name,string version,uint256 chainId)"
-            ),
-            keccak256(bytes("CarvProtocolService")),
-            keccak256(bytes("1")),
-            CHAIN_ID
-        )
-    );
+    bytes32 EIP712_DOMAIN_HASH =
+        keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId)"
+                ),
+                keccak256(bytes("CarvProtocolService")),
+                keccak256(bytes("1")),
+                CHAIN_ID
+            )
+        );
 
     mapping(uint256 => bool) _verifier_node_is_open_map;
 
@@ -146,6 +150,14 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         require(hasRole(TEE_ROLE, msg.sender), "sender doesn't have tee role");
     }
 
+    modifier nft_owner(delegateData calldata data) {
+        require(msg.sender == data.from, "CarvProtocolService: data not match");
+        require(
+            ICarvProtocolNFT(nft_address).ownerOf(data.tokenId) == msg.sender,
+            "CarvProtocolService: not owner"
+        );
+        _;
+    }
     event SubmitCampaign(
         address contract_address,
         string campaign_id,
@@ -191,15 +203,9 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         bool[] results
     );
 
-    event Minted(
-        address to,
-        uint256 token_id
-    );
+    event Minted(address to, uint256 token_id);
 
-    event VerifierWeightChanged(
-        address from,
-        address to
-    );
+    event VerifierWeightChanged(address from, address to);
 
     event OpenVerifierNode(
         address account,
@@ -274,7 +280,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         _setupRole(TEE_ROLE, tee_address);
     }
 
-
     /**
      * @notice get_attestation_id_list  the campaign infomation
      */
@@ -286,90 +291,103 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     /**
         @notice mint
      */
-    function mint(mintData calldata mint_data, bytes memory signature) external {
-   
+    function mint(
+        mintData calldata mint_data,
+        bytes memory signature
+    ) external {
         // make sure signature is valid and get the address of the signer
         address _signer = _mint_recover(mint_data, signature);
         require(_signer == mint_data.account, "verify the signature failed");
-       
+
         // make sure run once a day
-        require(block.timestamp >= mint_data.timestamp +  DAY_IN_SECONDS, "can only be sumbited once a day");
-     
-        ICarvProtocolNFT(nft_address).mint(mint_data.account,_cur_token_id);
-
-        _address_vote_weight[mint_data.account] ++  ;
-        _cur_token_id ++ ;
-
-        emit Minted(mint_data.account,_cur_token_id);
-
-    }
-
-
-    /**
-    * @notice Verifies the signature for a given token_id, returning the address of the signer.
-    * @param data token id of the given nft.
-    */
-    function _mint_recover(mintData calldata data, bytes memory signature) internal returns (address) {
-
-    
-        bytes32 hashStruct = keccak256(
-            abi.encode(
-                keccak256("mintData(address account,uint256 timestamp)"),
-                data.account,
-                data.timestamp
-            )
+        require(
+            block.timestamp >= mint_data.timestamp + DAY_IN_SECONDS,
+            "can only be sumbited once a day"
         );
 
-        return _get_recover_address(hashStruct,signature);
+        ICarvProtocolNFT(nft_address).mint(mint_data.account, _cur_token_id);
+
+        _address_vote_weight[mint_data.account]++;
+        _cur_token_id++;
+
+        emit Minted(mint_data.account, _cur_token_id);
     }
 
     /**
         @notice verifier_delegate
      */
-    function verifier_delegate(delegateData calldata delegate_data, bytes memory signature) external {
-
+    function verifier_delegate(
+        delegateData calldata delegate_data,
+        bytes memory signature
+    ) external nft_owner(delegate_data) {
         // make sure signature is valid and get the address of the signer
         address _signer = _delegate_recover(delegate_data, signature);
-        require(_signer == delegate_data.from, "verify the signature failed");
-       
+        require(
+            _signer == delegate_data.from,
+            "CarvProtocolService: verify the signature failed"
+        );
+
         // make sure run once a day
-        require(block.timestamp >= delegate_data.timestamp +  DAY_IN_SECONDS, "can only be sumbited once a day");
-   
+        require(
+            block.timestamp >= delegate_data.timestamp + DAY_IN_SECONDS,
+            "CarvProtocolService: can only be sumbited once a day"
+        );
 
-        require( _verifier_delegate_addresss_map[delegate_data.from] == address(0),"already been delegated");
+        require(
+            _verifier_delegate_addresss_map[delegate_data.from][
+                delegate_data.tokenId
+            ] == address(0),
+            "CarvProtocolService: already been delegated"
+        );
 
-        _verifier_weight_changed(delegate_data.from,delegate_data.to);
-        _verifier_delegate_addresss_map[delegate_data.from] = delegate_data.to;
+        _verifier_weight_changed(delegate_data.from, delegate_data.to);
+        _verifier_delegate_addresss_map[delegate_data.from][
+            delegate_data.tokenId
+        ] = delegate_data.to;
 
         emit VerifierWeightChanged(delegate_data.from,delegate_data.to);
-    }
 
+    }
 
     /**
         @notice verifier_redelegate
      */
-    function verifier_redelegate(delegateData calldata delegate_data, bytes memory signature) public {
-
+    function verifier_redelegate(
+        delegateData calldata delegate_data,
+        bytes memory signature
+    ) external nft_owner(delegate_data) {
         // make sure signature is valid and get the address of the signer
         address _signer = _delegate_recover(delegate_data, signature);
-        require(_signer == delegate_data.from, "verify the signature failed");
-       
-        // make sure run once a day
-        require(block.timestamp >= delegate_data.timestamp +  DAY_IN_SECONDS, "can only be sumbited once a day");
-   
-        address old_delegated_address =_verifier_delegate_addresss_map[delegate_data.from];
-        
-        _verifier_weight_changed(old_delegated_address,delegate_data.to);
-        _verifier_delegate_addresss_map[delegate_data.from] = delegate_data.to;
+        require(
+            _signer == delegate_data.from,
+            "CarvProtocolService: verify the signature failed"
+        );
 
+        // make sure run once a day
+        require(
+            block.timestamp >= delegate_data.timestamp + DAY_IN_SECONDS,
+            "CarvProtocolService: can only be sumbited once a day"
+        );
+
+        address old_delegated_address = _verifier_delegate_addresss_map[
+            delegate_data.from
+        ][delegate_data.tokenId];
+
+        _verifier_weight_changed(old_delegated_address, delegate_data.to);
+        _verifier_delegate_addresss_map[delegate_data.from][
+            delegate_data.tokenId
+        ] = delegate_data.to;
         emit VerifierWeightChanged(delegate_data.from,delegate_data.to);
+
     }
 
     /**
         @notice verifier_undelegate
      */
-    function verifier_undelegate(delegateData calldata delegate_data, bytes memory signature) external {
-
+    function verifier_undelegate(
+        delegateData calldata delegate_data,
+        bytes memory signature
+    ) external nft_owner(delegate_data) {
         // make sure signature is valid and get the address of the signer
         address _signer = _delegate_recover(delegate_data, signature);
         require(_signer == delegate_data.from, "verify the signature failed");
@@ -377,33 +395,14 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         // make sure run once a day
         require(block.timestamp >= delegate_data.timestamp +  DAY_IN_SECONDS, "can only be sumbited once a day");
    
-
-        address old_delegated_address =_verifier_delegate_addresss_map[delegate_data.from];
+        address old_delegated_address =_verifier_delegate_addresss_map[delegate_data.from][delegate_data.tokenId];
         
         _verifier_weight_changed(old_delegated_address,delegate_data.from);
-        _verifier_delegate_addresss_map[delegate_data.from] = address(0);
+        _verifier_delegate_addresss_map[delegate_data.from][delegate_data.tokenId] = address(0);
 
         emit VerifierWeightChanged(delegate_data.from,delegate_data.to);
     }
 
-    /**
-    * @notice Verifies the signature for a given token_id, returning the address of the signer.
-    * @param data token id of the given nft.
-    */
-    function _delegate_recover(delegateData calldata data, bytes memory signature) internal returns (address) {
-
-    
-        bytes32 hashStruct = keccak256(
-            abi.encode(
-                keccak256("delegateData(address from,address to,uint256 timestamp)"),
-                data.from,
-                data.to,
-                data.timestamp
-            )
-        );
-
-        return _get_recover_address(hashStruct,signature);
-    }
 
     /**
         @notice verifier_undelegate
@@ -413,7 +412,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         _address_vote_weight[from] --  ;
         _address_vote_weight[to] ++ ;
     }
-
 
     /**
         @notice Used to gain custody of deposited token.
@@ -483,8 +481,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
             address_user_map[user_address].token_id,
             multiIdentitiesRoot
         );
-      }
-
+    }
 
     /**
      * @notice join_campaign  the campaign infomation
@@ -646,7 +643,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
             // address old_delegated_address = _verifier_delegate_addresss_map[
             //     msg.sender
             // ][token_ids[i]];
-
             // _verifier_weight_changed(
             //     old_delegated_address,
             //     target_address_arr[i]
@@ -677,7 +673,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
             // address old_delegated_address = _verifier_delegate_addresss_map[
             //     msg.sender
             // ][token_ids[i]];
-
             // _verifier_weight_changed(old_delegated_address, msg.sender);
             // _verifier_delegate_addresss_map[msg.sender][token_ids[i]] = address(
             //     0
@@ -729,9 +724,9 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         if (total_sign >= verifier_pass_threshold) {
             return true;
         }
-    
+
         return false;
-   }
+    }
 
     function _is_exit_in_attestation_list(
         bytes32 attestation_id
@@ -743,6 +738,48 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         }
 
         return false;
+    }
+
+    /**
+     * @notice Verifies the signature for a given token_id, returning the address of the signer.
+     * @param data token id of the given nft.
+     */
+    function _mint_recover(
+        mintData calldata data,
+        bytes memory signature
+    ) internal returns (address) {
+        bytes32 hashStruct = keccak256(
+            abi.encode(
+                keccak256("mintData(address account,uint256 timestamp)"),
+                data.account,
+                data.timestamp
+            )
+        );
+
+        return _get_recover_address(hashStruct, signature);
+    }
+
+    /**
+     * @notice Verifies the signature for a given token_id, returning the address of the signer.
+     * @param data token id of the given nft.
+     */
+    function _delegate_recover(
+        delegateData calldata data,
+        bytes memory signature
+    ) internal returns (address) {
+        bytes32 hashStruct = keccak256(
+            abi.encode(
+                keccak256(
+                    "delegateData(address from,address to,uint256 tokenId,uint256 timestamp)"
+                ),
+                data.from,
+                data.to,
+                data.tokenId,
+                data.timestamp
+            )
+        );
+
+        return _get_recover_address(hashStruct, signature);
     }
 
     // ================== override functions ==================
@@ -759,66 +796,83 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     }
 
     /**
-    * @notice open_verifier_node  
-    */
-    function open_verifier_node(openVerifierNodeData calldata verifier_data, bytes memory signature)external {
-
+     * @notice open_verifier_node
+     */
+    function open_verifier_node(
+        openVerifierNodeData calldata verifier_data,
+        bytes memory signature
+    ) external {
         // make sure signature is valid and get the address of the signer
         address _signer = _open_verifier_node_recover(verifier_data, signature);
-        address _nft_owner = ICarvProtocolNFT(nft_address).ownerOf(verifier_data.token_id);
-        require(_signer == verifier_data.account, "verify the signature failed");
+        address _nft_owner = ICarvProtocolNFT(nft_address).ownerOf(
+            verifier_data.token_id
+        );
+        require(
+            _signer == verifier_data.account,
+            "verify the signature failed"
+        );
         require(_signer == _nft_owner, "verify the nft owner failed");
 
         // make sure run once a day
-        require(block.timestamp >= verifier_data.timestamp +  DAY_IN_SECONDS, "can only be sumbited once a day");
+        require(
+            block.timestamp >= verifier_data.timestamp + DAY_IN_SECONDS,
+            "can only be sumbited once a day"
+        );
 
         // recode the verifier open status
         _verifier_node_is_open_map[verifier_data.token_id] = true;
 
         // emit the open verifier node event
-        emit OpenVerifierNode(verifier_data.account,verifier_data.token_id,verifier_data.timestamp);
+        emit OpenVerifierNode(
+            verifier_data.account,
+            verifier_data.token_id,
+            verifier_data.timestamp
+        );
     }
 
     /**
-    * @notice Verifies the signature for a given token_id, returning the address of the signer.
-    * @param data token id of the given nft.
-    */
-    function _open_verifier_node_recover(openVerifierNodeData calldata data, bytes memory signature) internal returns (address) {
-
-    
+     * @notice Verifies the signature for a given token_id, returning the address of the signer.
+     * @param data token id of the given nft.
+     */
+    function _open_verifier_node_recover(
+        openVerifierNodeData calldata data,
+        bytes memory signature
+    ) internal returns (address) {
         bytes32 hashStruct = keccak256(
             abi.encode(
-                keccak256("openVerifierNodeData(address account,uint256 token_id,uint256 timestamp)"),
+                keccak256(
+                    "openVerifierNodeData(address account,uint256 token_id,uint256 timestamp)"
+                ),
                 data.account,
                 data.token_id,
                 data.timestamp
             )
         );
 
-        return _get_recover_address(hashStruct,signature);
-  
+        return _get_recover_address(hashStruct, signature);
     }
 
-
     /**
-    * @notice Verifies the signature for a given token_id, returning the address of the signer.
-    * @param hashStruct token id of the given nft.
-    */
-    function _get_recover_address(bytes32 hashStruct,bytes memory signature) internal returns (address) {
-
-    
-        // 1. hashing the data (above is part of this) and generating the hashes 
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", EIP712_DOMAIN_HASH, hashStruct));
-        emit RecoverParams(CHAIN_ID,EIP712_DOMAIN_HASH,hashStruct,digest);
+     * @notice Verifies the signature for a given token_id, returning the address of the signer.
+     * @param hashStruct token id of the given nft.
+     */
+    function _get_recover_address(
+        bytes32 hashStruct,
+        bytes memory signature
+    ) internal returns (address) {
+        // 1. hashing the data (above is part of this) and generating the hashes
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", EIP712_DOMAIN_HASH, hashStruct)
+        );
+        emit RecoverParams(CHAIN_ID, EIP712_DOMAIN_HASH, hashStruct, digest);
 
         return ECDSAUpgradeable.recover(digest, signature);
     }
 
-
     /**
-    * @notice close_verifier_node  
-    */
-    function close_verifier_node(openVerifierNodeData calldata verifier_data)external {
-
-    }
+     * @notice close_verifier_node
+     */
+    function close_verifier_node(
+        openVerifierNodeData calldata verifier_data
+    ) external {}
 }
