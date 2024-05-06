@@ -18,6 +18,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     bytes32 public constant TEE_ROLE = keccak256("TEE_ROLE");
     bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
     bytes32 public constant MINETR_ROLE = keccak256("MINETR_ROLE");
+    bytes32 public constant FORWADRDER_ROLE = keccak256("FORWARDER_ROLE");
 
     uint private _carv_id;
     string private _campaign_id;
@@ -29,6 +30,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     // address public nft_address;
     // uint256 public verifier_pass_threshold;
     uint256 private _cur_token_id;
+    uint256 public nonce;
 
     struct reward {
         string campaign_id;
@@ -110,6 +112,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         address from;
         address to;
         uint256 tokenId;
+        uint256 nonce;
         uint256 timestamp;
     }
 
@@ -151,13 +154,21 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     }
 
     modifier nft_owner(delegateData calldata data) {
-        require(msg.sender == data.from, "CarvProtocolService: data not match");
         require(
             ICarvProtocolNFT(nft_address).ownerOf(data.tokenId) == msg.sender,
-            "CarvProtocolService: not owner"
+            "CarvProtocolService: not nft owner"
         );
         _;
     }
+
+    modifier _only_forwarder() {
+        require(
+            hasRole(FORWADRDER_ROLE, msg.sender),
+            "sender doesn't have forwarder role"
+        );
+        _;
+    }
+
     event SubmitCampaign(
         address contract_address,
         string campaign_id,
@@ -281,6 +292,13 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     }
 
     /**
+     * @notice add_forwarder_role
+     */
+    function add_forwarder_role(address forwarder_address) external only_admin {
+        _setupRole(FORWADRDER_ROLE, forwarder_address);
+    }
+
+    /**
      * @notice get_attestation_id_list  the campaign infomation
      */
     function get_proof_list() external view returns (bytes32[] memory) {
@@ -319,7 +337,11 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function verifier_delegate(
         delegateData calldata delegate_data,
         bytes memory signature
-    ) external nft_owner(delegate_data) {
+    ) external nft_owner(delegate_data) _only_forwarder {
+        require(
+            delegate_data.nonce > nonce,
+            "CarvProtocolService: nonce is invalid"
+        );
         // make sure signature is valid and get the address of the signer
         address _signer = _delegate_recover(delegate_data, signature);
         require(
@@ -344,6 +366,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         _verifier_delegate_addresss_map[delegate_data.from][
             delegate_data.tokenId
         ] = delegate_data.to;
+
+        nonce++;
     }
 
     /**
@@ -352,7 +376,11 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function verifier_redelegate(
         delegateData calldata delegate_data,
         bytes memory signature
-    ) external nft_owner(delegate_data) {
+    ) external nft_owner(delegate_data) _only_forwarder {
+        require(
+            delegate_data.nonce > nonce,
+            "CarvProtocolService: nonce is invalid"
+        );
         // make sure signature is valid and get the address of the signer
         address _signer = _delegate_recover(delegate_data, signature);
         require(
@@ -374,6 +402,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         _verifier_delegate_addresss_map[delegate_data.from][
             delegate_data.tokenId
         ] = delegate_data.to;
+
+        nonce++;
     }
 
     /**
@@ -382,7 +412,11 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function verifier_undelegate(
         delegateData calldata delegate_data,
         bytes memory signature
-    ) external nft_owner(delegate_data) {
+    ) external nft_owner(delegate_data) _only_forwarder {
+        require(
+            delegate_data.nonce > nonce,
+            "CarvProtocolService: nonce is invalid"
+        );
         // make sure signature is valid and get the address of the signer
         address _signer = _delegate_recover(delegate_data, signature);
         require(
@@ -404,6 +438,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         _verifier_delegate_addresss_map[delegate_data.from][
             delegate_data.tokenId
         ] = address(0);
+
+        nonce++;
     }
 
     /**
@@ -593,94 +629,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         address_vote_weight[_to]++;
         _cur_token_id++;
         emit Minted(_to, _cur_token_id);
-    }
-
-    /**
-        @notice verifier_delegate_batch
-     */
-    function verifier_delegate_batch(
-        address[] calldata target_address_arr,
-        uint256[] calldata token_ids
-    ) external {
-        // TODO 1 change to gas less
-        // TODO 2 one day limit check
-
-        for (uint256 i = 0; i < token_ids.length; i++) {
-            // require(
-            //     ICarvProtocolNFT(nft_address).ownerOf(token_ids[i]) ==
-            //         msg.sender,
-            //     "CarvProtocolService: not owner"
-            // );
-            // require(
-            //     _verifier_delegate_addresss_map[msg.sender][token_ids[i]] ==
-            //         address(0),
-            //     "already been deplegtade"
-            // );
-            // _verifier_weight_changed(msg.sender, target_address_arr[i]);
-            // _verifier_delegate_addresss_map[msg.sender][
-            //     token_ids[i]
-            // ] = target_address_arr[i];
-        }
-    }
-
-    /**
-        @notice verifier_redelegate_batch
-     */
-    function verifier_redelegate_batch(
-        address[] calldata target_address_arr,
-        uint256[] calldata token_ids
-    ) public {
-        // TODO 1 change to gas less
-        // TODO 2 one day limit check
-        for (uint256 i = 0; i < token_ids.length; i++) {
-            // require(
-            //     ICarvProtocolNFT(nft_address).ownerOf(token_ids[i]) ==
-            //         msg.sender,
-            //     "CarvProtocolService: not owner"
-            // );
-            // require(
-            //     _verifier_delegate_addresss_map[msg.sender][token_ids[i]] !=
-            //         address(0),
-            //     "has not ben been deplegtade yet"
-            // );
-            // address old_delegated_address = _verifier_delegate_addresss_map[
-            //     msg.sender
-            // ][token_ids[i]];
-            // _verifier_weight_changed(
-            //     old_delegated_address,
-            //     target_address_arr[i]
-            // );
-            // _verifier_delegate_addresss_map[msg.sender][
-            //     token_ids[i]
-            // ] = target_address_arr[i];
-        }
-    }
-
-    /**
-        @notice verifier_undelegate_batch
-     */
-    function verifier_undelegate_batch(uint256[] calldata token_ids) external {
-        // TODO 1 change to gas less
-        // TODO 2 one day limit check
-        for (uint256 i = 0; i < token_ids.length; i++) {
-            // require(
-            //     ICarvProtocolNFT(nft_address).ownerOf(token_ids[i]) ==
-            //         msg.sender,
-            //     "CarvProtocolService: not owner"
-            // );
-            // require(
-            //     _verifier_delegate_addresss_map[msg.sender][token_ids[i]] !=
-            //         address(0),
-            //     "has not ben been deplegtade yet"
-            // );
-            // address old_delegated_address = _verifier_delegate_addresss_map[
-            //     msg.sender
-            // ][token_ids[i]];
-            // _verifier_weight_changed(old_delegated_address, msg.sender);
-            // _verifier_delegate_addresss_map[msg.sender][token_ids[i]] = address(
-            //     0
-            // );
-        }
     }
 
     // ================== internal functions ==================
