@@ -377,6 +377,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         ] = delegate_data.to;
 
         nonce++;
+
+        emit VerifierWeightChanged(delegate_data.from, delegate_data.to);
     }
 
     /**
@@ -413,6 +415,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         ] = delegate_data.to;
 
         nonce++;
+        emit VerifierWeightChanged(delegate_data.from, delegate_data.to);
     }
 
     /**
@@ -428,10 +431,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         );
         // make sure signature is valid and get the address of the signer
         address _signer = _delegate_recover(delegate_data, signature);
-        require(
-            _signer == delegate_data.from,
-            "CarvProtocolService: verify the signature failed"
-        );
+        require(_signer == delegate_data.from, "verify the signature failed");
 
         // make sure run once a day
         require(
@@ -447,8 +447,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         _verifier_delegate_addresss_map[delegate_data.from][
             delegate_data.tokenId
         ] = address(0);
-
-        nonce++;
     }
 
     /**
@@ -457,8 +455,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function _verifier_weight_changed(address from, address to) internal {
         _address_vote_weight[from]--;
         _address_vote_weight[to]++;
-
-        emit VerifierWeightChanged(from, to);
     }
 
     /**
@@ -743,19 +739,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         return _get_recover_address(hashStruct, signature);
     }
 
-    // ================== override functions ==================
-    function supportsInterface(
-        bytes4 interfaceId
-    )
-        public
-        view
-        virtual
-        override(ERC7231, AccessControlUpgradeable)
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId);
-    }
-
     /**
      * @notice open_verifier_node
      */
@@ -836,4 +819,17 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function close_verifier_node(
         openVerifierNodeData calldata verifier_data
     ) external {}
+
+    // ================== override functions ==================
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ERC7231, AccessControlUpgradeable)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
 }
