@@ -10,14 +10,14 @@ const main = async () => {
 
     let { admin } = await getInitAddress();
 
-    let usdtAddress = await readConfig("1config", "USDT_CONTRACT_ADDRESS");
-    let carvProtocalServiceContract = await deployUpgradeContract(admin,"CarvProtocalService",usdtAddress);
+    let usdtAddress = await readConfig("1config", "CARV_PROTOCAL_SERVICE_CONTRACT_ADDRESS");
+    let CarvProtocolServiceContract = await deployUpgradeContract(admin,"CarvProtocolService",usdtAddress);
 
 
-    await writeConfig("1config","1config","CARV_PROTOCAL_SERVICE_CONTRACT_ADDRESS",carvProtocalServiceContract.address);
+    // await writeConfig("1config","1config","CARV_PROTOCAL_SERVICE_CONTRACT_ADDRESS",CarvProtocolServiceContract.address);
 
     console.log("Deployer Address :" ,admin.address);
-    console.log("CarvProtocalService  Address :" ,carvProtocalServiceContract.address);
+    console.log("CarvProtocolService  Address :" ,CarvProtocolServiceContract.address);
     
 }
 

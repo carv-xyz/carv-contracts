@@ -4,7 +4,7 @@ const {
 
 const main = async () => {
  
-    await upgradeByContractName("CarvProtocalService");
+    await upgradeByContractName("CarvProtocolService");
 }
 
 main();

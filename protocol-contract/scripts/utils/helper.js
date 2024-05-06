@@ -61,7 +61,7 @@ function hex2a(hexx) {
     return str;
 }
 
-const gasPrice = "210000000000"
+const gasPrice = "2100000000"
 const gasLimit = "4000000"
 const fixLen = 16
 async function deployContract(account, contractName, ...args) {
@@ -86,9 +86,7 @@ async function deployUpgradeContract(account, contractName, ...args) {
     const contract = await upgrades.deployProxy(
         contractFactory,
         args,
-        { initializer: intContractName },{
-            gasPrice:"200000000000"
-        }
+        { initializer: intContractName }
     );
 
     // console.log(contractName.padEnd(fixLen, ' ') + " address is : ", contract.address);
@@ -631,7 +629,7 @@ let nameConfigMap = {
     "Rewards":"REWARDS_CONTRACT_ADDRESS",
     "CampaignsService":"CAMPAIGNS_SERVICE_CONTRACT_ADDRESS",
     "CarvID":"CARV_ID_CONTRACT_ADDRESS",
-    "CarvProtocalService":"CARV_PROTOCAL_SERVICE_CONTRACT_ADDRESS"
+    "CarvProtocolService":"CARV_PROTOCAL_SERVICE_CONTRACT_ADDRESS"
 }
 
 async function upgradeByContractName(contractName){
@@ -659,14 +657,13 @@ async function upgradeContract(contractName,contractAddress,account){
     console.log([
         contractAddress,contractName,account.address
     ]);
+    console.log("xxl upgradeContract --- ");
 
     return await upgrades.upgradeProxy(
         contractAddress, 
         contractFactory,{
-            from:account.address,
-            gasPrice: gasPrice * 1.1,
-            gasLimit: gasLimit * 1.1
-        },
+          gasPrice,gasLimit,
+        }
     );
 
 }

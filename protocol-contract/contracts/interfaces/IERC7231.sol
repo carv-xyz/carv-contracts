@@ -51,5 +51,6 @@ interface IERC7231 {
     function verifyIdentitiesBinding(
         uint256 id,address nftOwnerAddress,address sigAddress,string[] memory userIDs,bytes32 identitiesRoot, bytes calldata signature
     ) external returns (bool);
+
     
 }

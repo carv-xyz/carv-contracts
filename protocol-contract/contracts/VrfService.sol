@@ -6,7 +6,8 @@ import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBa
 
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 
-contract VrfService is VRFConsumerBaseV2, ConfirmedOwner {
+contract VrfService is VRFConsumerBaseV2,ConfirmedOwner{
+
     event RequestSent(uint256 requestId, uint32 numWords);
     event RequestFulfilled(uint256 requestId, uint256[] randomWords);
 
@@ -29,8 +30,8 @@ contract VrfService is VRFConsumerBaseV2, ConfirmedOwner {
     // The gas lane to use, which specifies the maximum gas price to bump to.
     // For a list of available gas lanes on each network,
     // see https://docs.chain.link/docs/vrf/v2/subscription/supported-networks/#configurations
-    bytes32 keyHash =
-        0x027f94ff1465b3525f9fc03e9ff7d6d2c0953482246dd6ae07570c45d6631414;
+
+    bytes32 keyHash =  0x027f94ff1465b3525f9fc03e9ff7d6d2c0953482246dd6ae07570c45d6631414;
 
     // Depends on the number of requested values that you want sent to the
     // fulfillRandomWords() function. Storing each word costs about 20,000 gas,
@@ -48,9 +49,9 @@ contract VrfService is VRFConsumerBaseV2, ConfirmedOwner {
     uint32 numWords = 2;
 
     /**
-     * HARDCODED FOR SEPOLIA
-     * COORDINATOR: 0x50d47e4142598E3411aA864e08a44284e471AC6f
-     */
+        * HARDCODED FOR SEPOLIA
+        * COORDINATOR: 0x50d47e4142598E3411aA864e08a44284e471AC6f
+        */
     constructor(
         uint64 subscriptionId
     )
@@ -77,7 +78,6 @@ contract VrfService is VRFConsumerBaseV2, ConfirmedOwner {
             callbackGasLimit,
             numWords
         );
-
         s_requests[requestId] = RequestStatus({
             randomWords: new uint256[](0),
             exists: true,
@@ -106,8 +106,8 @@ contract VrfService is VRFConsumerBaseV2, ConfirmedOwner {
         RequestStatus memory request = s_requests[_requestId];
         return (request.fulfilled, request.randomWords);
     }
-}
 
 // https://docs.chain.link/vrf/v2/subscription/supported-networks/#configurations
 // https://vrf.chain.link/arbitrum-sepolia/339
 // https://sepolia.arbiscan.io/tx/0x2ae67d6f51bac73cccfa781e38864972a91a9f0e7347176c25af558b981f2c6a#eventlog
+}
