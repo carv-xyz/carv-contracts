@@ -7,28 +7,27 @@ require('@openzeppelin/hardhat-upgrades');
 // require("@nomicfoundation/hardhat-toolbox")
 
 const dotenv = require("dotenv");
-dotenv.config({path: __dirname + '/.env'});
+dotenv.config({ path: __dirname + '/.env' });
 module.exports = {
-  
+
   networks: {
 
     mumbai: {
       url: `https://polygon-mumbai.g.alchemy.com/v2/F1X0FmmZ95T61-D1LldN5QYam9D0amLn`,
-      accounts: 
-      [
-        process.env.privateKey
-      ]
+      accounts:
+        [
+          process.env.PRIVATE_KEY
+        ]
     },
-    
+
     opbnbMainnet: {
-      url: "https://opbnb-mainnet-rpc.bnbchain.org/", 
-      chainId: 204 , // Replace with the correct chainId for the "opbnb" network
-      accounts: [process.env.privateKey], // Add private keys or mnemonics of accounts to use 
+      url: "https://opbnb-mainnet-rpc.bnbchain.org/",
+      chainId: 204, // Replace with the correct chainId for the "opbnb" network
+      accounts: [process.env.PRIVATE_KEY], // Add private keys or mnemonics of accounts to use 
       gasPrice: 20000000,
       allowUnlimitedContractSize: true,
 
     },
-
     hardhat:{
       chainId:100,
       accounts:
@@ -50,20 +49,20 @@ module.exports = {
     baseTest:
     {
       url: `https://goerli.base.org`,
-      accounts: 
-      [
-        process.env.privateKey
-      ]
+      accounts:
+        [
+          process.env.PRIVATE_KEY
+        ]
     },
 
     //op Testnet
     opTest:
     {
       url: `https://goerli.optimism.io`,
-      accounts: 
-      [
-        process.env.privateKey
-      ]
+      accounts:
+        [
+          process.env.PRIVATE_KEY
+        ]
     },
 
     //opbnb Testnet
@@ -71,46 +70,37 @@ module.exports = {
     {
       url: `https://opbnb-testnet-rpc.bnbchain.org`,
       chainId: 5611, // Replace with the correct chainId for the "opbnb" network
-      accounts: 
-      [
-        process.env.privateKey
-      ],
+      accounts:
+        [
+          process.env.PRIVATE_KEY
+        ],
       gasPrice: 20000000000,
       allowUnlimitedContractSize: true,
     },
-
-    arbitrumGoerli: {
-      url: `https://goerli-rollup.arbitrum.io/rpc/`,
-      accounts: 
-      [
-        process.env.privateKey
-      ]
-    },
-    // https://sepolia-rollup.arbitrum.io/rpc
     arbitrumSepolia: {
-      url: `https://sepolia-rollup.arbitrum.io/rpc`,
-      accounts: 
-      [
-        process.env.privateKey
-      ]
+      url: `https://arb-sepolia.g.alchemy.com/v2/${process.env.ARBITRUM_SEPOLIA_KEY}`,
+      chainId: 421614,
+      accounts:
+        [
+          process.env.PRIVATE_KEY
+        ],
+      allowUnlimitedContractSize: true,
     },
-
     sepolia: {
       url: `https://sepolia.infura.io/v3/${process.env.apiKey}`,
       accounts: [
-        process.env.privateKey
+        process.env.PRIVATE_KEY
       ]
     },
 
   },
-
 
   // solidity: '0.8.17',
   solidity: {
     compilers: [
       {
         version: "0.8.17",
-        settings: { 
+        settings: {
           optimizer: {
             enabled: true,
             runs: 1
@@ -126,8 +116,8 @@ module.exports = {
           }
         }
       },
-  ]},
-  
+    ]
+  },
   settings: {
     optimizer: {
       enabled: false,
@@ -159,7 +149,6 @@ module.exports = {
       },
     ],
   }
-  
 }
 
 // https://etherscan.io/myapikey
