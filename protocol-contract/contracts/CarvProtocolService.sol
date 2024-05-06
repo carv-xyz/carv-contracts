@@ -340,6 +340,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
         _verifier_weight_changed(delegate_data.from,delegate_data.to);
         _verifier_delegate_addresss_map[delegate_data.from] = delegate_data.to;
+
+        emit VerifierWeightChanged(delegate_data.from,delegate_data.to);
     }
 
 
@@ -359,6 +361,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         
         _verifier_weight_changed(old_delegated_address,delegate_data.to);
         _verifier_delegate_addresss_map[delegate_data.from] = delegate_data.to;
+
+        emit VerifierWeightChanged(delegate_data.from,delegate_data.to);
     }
 
     /**
@@ -378,6 +382,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         
         _verifier_weight_changed(old_delegated_address,delegate_data.from);
         _verifier_delegate_addresss_map[delegate_data.from] = address(0);
+
+        emit VerifierWeightChanged(delegate_data.from,delegate_data.to);
     }
 
     /**
@@ -406,8 +412,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
         _address_vote_weight[from] --  ;
         _address_vote_weight[to] ++ ;
-
-        emit VerifierWeightChanged(from,to);
     }
 
 
