@@ -721,7 +721,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         bytes32 hashStruct = keccak256(
             abi.encode(
                 keccak256(
-                    "delegateData(address from,address to,uint256 tokenId,uint256 timestamp)"
+                    "delegateData(address from,address to,uint256 tokenId,uint256 nonce,uint256 timestamp)"
                 ),
                 data.from,
                 data.to,
