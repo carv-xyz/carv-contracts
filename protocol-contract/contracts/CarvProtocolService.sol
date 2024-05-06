@@ -301,9 +301,18 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     /**
      * @notice get_attestation_id_list  the campaign infomation
      */
-    function get_proof_list() external view returns (bytes32[] memory) {
+    function get_proof_list(
+        uint256 startId,
+        uint256 endId
+    ) external view returns (bytes32[] memory) {
         //validate the param
-        return attestation_id_list;
+        bytes32[] memory attestation_id_list_tmp = new bytes32[](
+            endId - startId
+        );
+        for (uint256 i = startId; i < endId; i++) {
+            attestation_id_list_tmp[i - startId] = attestation_id_list_tmp[i];
+        }
+        return attestation_id_list_tmp;
     }
 
     /**
@@ -549,6 +558,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     ) external only_tees {
         bytes32 attestation_id = keccak256(bytes(attestation));
         attestation_id_list.push(attestation_id);
+        //TODO
         uint256 reward_amount = campain_reward_map[campaign_id].reward_amount;
 
         _attestation_id_reward_map[attestation_id] = reward_amount;
