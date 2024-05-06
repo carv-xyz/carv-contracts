@@ -17,7 +17,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
     bytes32 public constant TEE_ROLE = keccak256("TEE_ROLE");
     bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
-    bytes32 public constant MINETR_ROLE = keccak256("MINETR_ROLE");
+    bytes32 public constant PLATFORM_MINETR_ROLE =
+        keccak256("PLATFORM_MINETR_ROLE");
     bytes32 public constant FORWADRDER_ROLE = keccak256("FORWARDER_ROLE");
 
     uint private _carv_id;
@@ -25,6 +26,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     string private _campaign_info;
 
     bytes32[] public attestation_id_list;
+    mapping(bytes32 => bool) public attestation_id_map;
+
     address[] public verifier_list;
     address private vrf_address;
     // address public nft_address;
@@ -103,11 +106,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         uint256 timestamp;
     }
 
-    struct mintData {
-        address account;
-        uint256 timestamp;
-    }
-
     struct delegateData {
         address from;
         address to;
@@ -117,57 +115,10 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     }
 
     uint private constant DAY_IN_SECONDS = 86400;
-    uint256 CHAIN_ID = uint256(block.chainid);
-    bytes32 EIP712_DOMAIN_HASH =
-        keccak256(
-            abi.encode(
-                keccak256(
-                    "EIP712Domain(string name,string version,uint256 chainId)"
-                ),
-                keccak256(bytes("CarvProtocolService")),
-                keccak256(bytes("1")),
-                CHAIN_ID
-            )
-        );
+    uint256 public CHAIN_ID;
+    bytes32 public EIP712_DOMAIN_HASH;
 
     mapping(uint256 => bool) _verifier_node_is_open_map;
-
-    modifier only_admin() {
-        _only_admin();
-        _;
-    }
-
-    modifier only_tees() {
-        _only_tees();
-        _;
-    }
-
-    function _only_admin() private view {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "sender doesn't have admin role"
-        );
-    }
-
-    function _only_tees() private view {
-        require(hasRole(TEE_ROLE, msg.sender), "sender doesn't have tee role");
-    }
-
-    modifier nft_owner(delegateData calldata data) {
-        require(
-            ICarvProtocolNFT(nft_address).ownerOf(data.tokenId) == msg.sender,
-            "CarvProtocolService: not nft owner"
-        );
-        _;
-    }
-
-    modifier _only_forwarder() {
-        require(
-            hasRole(FORWADRDER_ROLE, msg.sender),
-            "sender doesn't have forwarder role"
-        );
-        _;
-    }
 
     event SubmitCampaign(
         address contract_address,
@@ -234,22 +185,34 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     /**
         @notice Initializes CampaignsService, creates and grants {msg.sender} the admin role,
      */
-    function __CarvProtocolService_init(
+    function initialize(
         address rewards_address,
-        address _nft_address
+        address _nft_address,
+        uint256 _chainId
     ) public initializer {
         _admin_address = msg.sender;
         vault_address = rewards_address;
         nft_address = _nft_address;
         _cur_token_id = 1;
-
-        super._setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        CHAIN_ID = _chainId;
+        EIP712_DOMAIN_HASH = keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId)"
+                ),
+                keccak256(bytes("CarvProtocolService")),
+                keccak256(bytes("1")),
+                CHAIN_ID
+            )
+        );
+        __AccessControl_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function setTeeInfo(
         string calldata publicKey,
         string calldata mrEnclave
-    ) external only_tees {
+    ) external onlyRole(TEE_ROLE) {
         addressTeeInfo[msg.sender].publicKey = publicKey;
         addressTeeInfo[msg.sender].mrEnclave = mrEnclave;
     }
@@ -257,21 +220,27 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     /**
         @notice set_pay_address
      */
-    function set_vault_address(address _vault_address) external only_admin {
+    function set_vault_address(
+        address _vault_address
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         vault_address = _vault_address;
     }
 
     /**
         @notice get_verifier_list
      */
-    function set_vrf_address(address _vrf_address) external only_admin {
+    function set_vrf_address(
+        address _vrf_address
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         vrf_address = _vrf_address;
     }
 
     /**
         @notice set_nft_address
      */
-    function set_nft_address(address _nft_address) external only_admin {
+    function set_nft_address(
+        address _nft_address
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         nft_address = _nft_address;
     }
 
@@ -280,22 +249,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
      */
     function set_verifier_pass_threshold(
         uint256 _verifier_pass_threshold
-    ) external only_admin {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         verifier_pass_threshold = _verifier_pass_threshold;
-    }
-
-    /**
-        @notice add_tee_role
-     */
-    function add_tee_role(address tee_address) external only_admin {
-        _setupRole(TEE_ROLE, tee_address);
-    }
-
-    /**
-     * @notice add_forwarder_role
-     */
-    function add_forwarder_role(address forwarder_address) external only_admin {
-        _setupRole(FORWADRDER_ROLE, forwarder_address);
     }
 
     /**
@@ -310,34 +265,36 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
             endId - startId
         );
         for (uint256 i = startId; i < endId; i++) {
-            attestation_id_list_tmp[i - startId] = attestation_id_list_tmp[i];
+            attestation_id_list_tmp[i - startId] = attestation_id_list[i];
         }
         return attestation_id_list_tmp;
     }
 
     /**
+        @notice mint testnet ; 
+     */
+    //TODO Mainnet must remove;
+    function mintTest(address _to) external {
+        ICarvProtocolNFT(nft_address).mint(_to, _cur_token_id);
+
+        address_vote_weight[_to]++;
+        _cur_token_id++;
+        emit Minted(_to, _cur_token_id);
+    }
+
+    /**
         @notice mint
+        @param receivers the address of the receiver
      */
     function mint(
-        mintData calldata mint_data,
-        bytes memory signature
-    ) external {
-        // make sure signature is valid and get the address of the signer
-        address _signer = _mint_recover(mint_data, signature);
-        require(_signer == mint_data.account, "verify the signature failed");
-
-        // make sure run once a day
-        require(
-            block.timestamp >= mint_data.timestamp + DAY_IN_SECONDS,
-            "can only be sumbited once a day"
-        );
-
-        ICarvProtocolNFT(nft_address).mint(mint_data.account, _cur_token_id);
-
-        _address_vote_weight[mint_data.account]++;
-        _cur_token_id++;
-
-        emit Minted(mint_data.account, _cur_token_id);
+        address[] calldata receivers
+    ) external onlyRole(PLATFORM_MINETR_ROLE) {
+        ICarvProtocolNFT(nft_address).batchMint(receivers, _cur_token_id);
+        for (uint256 i = 0; i < receivers.length; i++) {
+            address_vote_weight[receivers[i]]++;
+            _cur_token_id++;
+            emit Minted(receivers[i], _cur_token_id);
+        }
     }
 
     /**
@@ -346,7 +303,12 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function verifier_delegate(
         delegateData calldata delegate_data,
         bytes memory signature
-    ) external nft_owner(delegate_data) _only_forwarder {
+    ) external onlyRole(FORWADRDER_ROLE) {
+        require(
+            ICarvProtocolNFT(nft_address).ownerOf(delegate_data.tokenId) ==
+                delegate_data.from,
+            "CarvProtocolService: nft owner is invalid"
+        );
         require(
             delegate_data.nonce > nonce,
             "CarvProtocolService: nonce is invalid"
@@ -387,7 +349,12 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function verifier_redelegate(
         delegateData calldata delegate_data,
         bytes memory signature
-    ) external nft_owner(delegate_data) _only_forwarder {
+    ) external onlyRole(FORWADRDER_ROLE) {
+        require(
+            ICarvProtocolNFT(nft_address).ownerOf(delegate_data.tokenId) ==
+                delegate_data.from,
+            "CarvProtocolService: nft owner is invalid"
+        );
         require(
             delegate_data.nonce > nonce,
             "CarvProtocolService: nonce is invalid"
@@ -424,7 +391,12 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function verifier_undelegate(
         delegateData calldata delegate_data,
         bytes memory signature
-    ) external nft_owner(delegate_data) _only_forwarder {
+    ) external onlyRole(FORWADRDER_ROLE) {
+        require(
+            ICarvProtocolNFT(nft_address).ownerOf(delegate_data.tokenId) ==
+                delegate_data.from,
+            "CarvProtocolService: nft owner is invalid"
+        );
         require(
             delegate_data.nonce > nonce,
             "CarvProtocolService: nonce is invalid"
@@ -447,14 +419,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         _verifier_delegate_addresss_map[delegate_data.from][
             delegate_data.tokenId
         ] = address(0);
-    }
-
-    /**
-        @notice verifier_undelegate
-     */
-    function _verifier_weight_changed(address from, address to) internal {
-        _address_vote_weight[from]--;
-        _address_vote_weight[to]++;
     }
 
     /**
@@ -551,10 +515,11 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function report_tee_attestation(
         string calldata campaign_id,
         string calldata attestation
-    ) external only_tees {
+    ) external onlyRole(TEE_ROLE) {
         bytes32 attestation_id = keccak256(bytes(attestation));
         attestation_id_list.push(attestation_id);
-        //TODO
+        attestation_id_map[attestation_id] = true;
+
         uint256 reward_amount = campain_reward_map[campaign_id].reward_amount;
 
         _attestation_id_reward_map[attestation_id] = reward_amount;
@@ -573,10 +538,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
             "CarvProtocolService: no vote weight"
         );
 
-        require(
-            _is_exit_in_attestation_list(attestation_id),
-            "attestation is not exist"
-        );
+        require(attestation_id_map[attestation_id], "attestation is not exist");
         require(
             !_is_verified_by_same_verifier(attestation_id),
             "attestation can not by verify again"
@@ -610,7 +572,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         uint256 nLen = attestation_ids.length;
         for (uint256 i = 0; i < nLen; i++) {
             require(
-                _is_exit_in_attestation_list(attestation_ids[i]),
+                attestation_id_map[attestation_ids[i]],
                 "attestation is not exist"
             );
             attestation_id_result_map[attestation_ids[i]] = results[i];
@@ -622,19 +584,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         }
 
         emit VerifyAttestationBatch(msg.sender, attestation_ids, results);
-    }
-
-    /**
-        @notice mint
-     */
-    function mint(address _to) external {
-        // TODO 1 change to gas less
-        // TODO 2 one day limit check
-        ICarvProtocolNFT(nft_address).mint(_to, _cur_token_id);
-
-        address_vote_weight[_to]++;
-        _cur_token_id++;
-        emit Minted(_to, _cur_token_id);
     }
 
     // ================== internal functions ==================
@@ -685,37 +634,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         return false;
     }
 
-    function _is_exit_in_attestation_list(
-        bytes32 attestation_id
-    ) internal view returns (bool) {
-        for (uint256 i = 0; i < attestation_id_list.length; i++) {
-            if (attestation_id_list[i] == attestation_id) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @notice Verifies the signature for a given token_id, returning the address of the signer.
-     * @param data token id of the given nft.
-     */
-    function _mint_recover(
-        mintData calldata data,
-        bytes memory signature
-    ) internal returns (address) {
-        bytes32 hashStruct = keccak256(
-            abi.encode(
-                keccak256("mintData(address account,uint256 timestamp)"),
-                data.account,
-                data.timestamp
-            )
-        );
-
-        return _get_recover_address(hashStruct, signature);
-    }
-
     /**
      * @notice Verifies the signature for a given token_id, returning the address of the signer.
      * @param data token id of the given nft.
@@ -737,6 +655,14 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         );
 
         return _get_recover_address(hashStruct, signature);
+    }
+
+    /**
+        @notice verifier_undelegate
+     */
+    function _verifier_weight_changed(address from, address to) internal {
+        _address_vote_weight[from]--;
+        _address_vote_weight[to]++;
     }
 
     /**
