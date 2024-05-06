@@ -1710,8 +1710,8 @@
       ]
     },
     "/Users/xuxinlai/carv/carv-contracts/protocol-contract/contracts/VrfService.sol": {
-      "lastModificationDate": 1713341101018,
-      "contentHash": "4ba413680a5af66f73541588696a50de",
+      "lastModificationDate": 1714966478939,
+      "contentHash": "5411a589c96ff5077824d8268c07f74a",
       "sourceName": "contracts/VrfService.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -2012,8 +2012,8 @@
       ]
     },
     "/Users/xuxinlai/carv/carv-contracts/protocol-contract/contracts/CarvProtocolNFT.sol": {
-      "lastModificationDate": 1714382428167,
-      "contentHash": "72763a8b4ec467fc2e843dfee553aea0",
+      "lastModificationDate": 1714967812779,
+      "contentHash": "772ce35742ea636a48d79f248ee6cecd",
       "sourceName": "contracts/CarvProtocolNFT.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -2057,8 +2057,8 @@
       ]
     },
     "/Users/xuxinlai/carv/carv-contracts/protocol-contract/contracts/CarvProtocolService.sol": {
-      "lastModificationDate": 1714463198360,
-      "contentHash": "9a60d8364eaa822065299d4b22d0763f",
+      "lastModificationDate": 1714968933005,
+      "contentHash": "1e373b9828584d3d81e30fc9fe90fb37",
       "sourceName": "contracts/CarvProtocolService.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -2092,17 +2092,236 @@
       },
       "imports": [
         "./ERC7231.sol",
-        "./CarvProtocolNFT.sol",
+        "./interfaces/ICarvProtocolNFT.sol",
+        "./interfaces/ICarvVault.sol",
         "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol",
         "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
         "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-        "hardhat/console.sol"
+        "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol"
       ],
       "versionPragmas": [
         "^0.8.17"
       ],
       "artifacts": [
         "CarvProtocolService"
+      ]
+    },
+    "/Users/xuxinlai/carv/carv-contracts/protocol-contract/node_modules/@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol": {
+      "lastModificationDate": 1713928217332,
+      "contentHash": "e6a08d062a6f4f6b05822a0fa19a1606",
+      "sourceName": "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "../StringsUpgradeable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ECDSAUpgradeable"
+      ]
+    },
+    "/Users/xuxinlai/carv/carv-contracts/protocol-contract/contracts/interfaces/ICarvProtocolNFT.sol": {
+      "lastModificationDate": 1714966478943,
+      "contentHash": "1e527f7ac39790cebbdf85e88c7f6833",
+      "sourceName": "contracts/interfaces/ICarvProtocolNFT.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.17"
+      ],
+      "artifacts": [
+        "ICarvProtocolNFT"
+      ]
+    },
+    "/Users/xuxinlai/carv/carv-contracts/protocol-contract/contracts/interfaces/ICarvVault.sol": {
+      "lastModificationDate": 1714966478943,
+      "contentHash": "91c92f72eca30a1798ee6c21904f0f74",
+      "sourceName": "contracts/interfaces/ICarvVault.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ICarvVault"
+      ]
+    },
+    "/Users/xuxinlai/carv/carv-contracts/protocol-contract/contracts/CarvVault.sol": {
+      "lastModificationDate": 1714966478937,
+      "contentHash": "9a1bf2c56fb7f981d2ef62d73937e087",
+      "sourceName": "contracts/CarvVault.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./interfaces/ICarvVault.sol",
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.17"
+      ],
+      "artifacts": [
+        "CarvVault"
+      ]
+    },
+    "/Users/xuxinlai/carv/carv-contracts/protocol-contract/node_modules/@openzeppelin/contracts/access/Ownable.sol": {
+      "lastModificationDate": 1713928212574,
+      "contentHash": "5a20b2cad87ddb61c7a3a6af21289e28",
+      "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "../utils/Context.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Ownable"
       ]
     }
   }

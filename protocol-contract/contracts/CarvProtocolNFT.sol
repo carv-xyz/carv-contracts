@@ -93,9 +93,9 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
     /**
         @notice set_can_transfer
      */
-    function set_can_transfer(bool can_transfer) external only_admin {
-       
-        _can_transfer = can_transfer;
+    function set_can_transfer(bool _can_transfer) external only_admin {
+
+        can_transfer = _can_transfer;
     }
 
 

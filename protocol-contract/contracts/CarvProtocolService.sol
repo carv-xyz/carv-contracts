@@ -25,9 +25,9 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
     bytes32[] public attestation_id_list;
     address[] public verifier_list;
-    address public vrf_address;
-    address public nft_address;
-    uint256 public verifier_pass_threshold;
+    address private vrf_address;
+    // address public nft_address;
+    // uint256 public verifier_pass_threshold;
     uint256 private _cur_token_id;
 
     struct reward {
@@ -82,23 +82,16 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
     // verifier block
     mapping(address => uint256) public verifier_block;
-    // owner -> tokenId -> receiver
-    mapping(address => mapping(uint256 => address))
-        private _verifier_delegate_addresss_map;
+
+    mapping(address => address ) private _verifier_delegate_addresss_map;
     mapping(address => uint256) public address_vote_weight;
+
     bytes32[] _attestation_id_list;
     address[] _verifier_list;
-    address _vrf_address;
-    address _nft_address;
-    uint256 _verifier_pass_threshold;
-   mapping(address => uint256) private _address_vote_weight;
-   
-    struct teeInfo{
-        string publicKey;
-        string mrEnclave;
-    }
+    address private nft_address;
+    uint256 private verifier_pass_threshold;
+    mapping(address => uint256) private _address_vote_weight;
     mapping(address => teeInfo) _addressTeeInfo;
-    mapping(address => address) private _verifier_delegate_addresss_map;
 
     struct openVerifierNodeData {
         address account;
@@ -259,13 +252,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     }
 
     /**
-        @notice set_vrf_address
-     */
-    function set_vrf_address(address vrf_address) external only_admin{
-        _vrf_address = vrf_address;
-    }
-
-    /**
         @notice set_nft_address
      */
     function set_nft_address(address _nft_address) external only_admin {
@@ -309,7 +295,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         // make sure run once a day
         require(block.timestamp >= mint_data.timestamp +  DAY_IN_SECONDS, "can only be sumbited once a day");
      
-        CarvProtocolNFT(_nft_address).mint(mint_data.account,_cur_token_id);
+        ICarvProtocolNFT(nft_address).mint(mint_data.account,_cur_token_id);
 
         _address_vote_weight[mint_data.account] ++  ;
         _cur_token_id ++ ;
@@ -446,26 +432,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
             campaign_info.campaign_id,
             campaign_info.requirements
         );
-    }
-
-    /**
-        @notice set_identities_root
-     */
-    // and check profile version
-    function set_identities_root(
-        address user_address,
-        string calldata user_profile_path,
-        uint256 profile_version,
-        bytes32 multiIdentitiesRoot,
-        bytes calldata signature
-    ) external {
-
-        _address_user_map[user_address].user_profile_path = user_profile_path;
-        _address_user_map[user_address].profile_version = profile_version;
-        _address_user_map[user_address].signature = signature;
-
-        setIdentitiesRoot(_address_user_map[user_address].token_id,multiIdentitiesRoot);
-
     }
 
     /**
@@ -636,20 +602,20 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         // TODO 2 one day limit check
 
         for (uint256 i = 0; i < token_ids.length; i++) {
-            require(
-                ICarvProtocolNFT(nft_address).ownerOf(token_ids[i]) ==
-                    msg.sender,
-                "CarvProtocolService: not owner"
-            );
-            require(
-                _verifier_delegate_addresss_map[msg.sender][token_ids[i]] ==
-                    address(0),
-                "already been deplegtade"
-            );
-            _verifier_weight_changed(msg.sender, target_address_arr[i]);
-            _verifier_delegate_addresss_map[msg.sender][
-                token_ids[i]
-            ] = target_address_arr[i];
+            // require(
+            //     ICarvProtocolNFT(nft_address).ownerOf(token_ids[i]) ==
+            //         msg.sender,
+            //     "CarvProtocolService: not owner"
+            // );
+            // require(
+            //     _verifier_delegate_addresss_map[msg.sender][token_ids[i]] ==
+            //         address(0),
+            //     "already been deplegtade"
+            // );
+            // _verifier_weight_changed(msg.sender, target_address_arr[i]);
+            // _verifier_delegate_addresss_map[msg.sender][
+            //     token_ids[i]
+            // ] = target_address_arr[i];
         }
     }
 
@@ -663,27 +629,27 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         // TODO 1 change to gas less
         // TODO 2 one day limit check
         for (uint256 i = 0; i < token_ids.length; i++) {
-            require(
-                ICarvProtocolNFT(nft_address).ownerOf(token_ids[i]) ==
-                    msg.sender,
-                "CarvProtocolService: not owner"
-            );
-            require(
-                _verifier_delegate_addresss_map[msg.sender][token_ids[i]] !=
-                    address(0),
-                "has not ben been deplegtade yet"
-            );
-            address old_delegated_address = _verifier_delegate_addresss_map[
-                msg.sender
-            ][token_ids[i]];
+            // require(
+            //     ICarvProtocolNFT(nft_address).ownerOf(token_ids[i]) ==
+            //         msg.sender,
+            //     "CarvProtocolService: not owner"
+            // );
+            // require(
+            //     _verifier_delegate_addresss_map[msg.sender][token_ids[i]] !=
+            //         address(0),
+            //     "has not ben been deplegtade yet"
+            // );
+            // address old_delegated_address = _verifier_delegate_addresss_map[
+            //     msg.sender
+            // ][token_ids[i]];
 
-            _verifier_weight_changed(
-                old_delegated_address,
-                target_address_arr[i]
-            );
-            _verifier_delegate_addresss_map[msg.sender][
-                token_ids[i]
-            ] = target_address_arr[i];
+            // _verifier_weight_changed(
+            //     old_delegated_address,
+            //     target_address_arr[i]
+            // );
+            // _verifier_delegate_addresss_map[msg.sender][
+            //     token_ids[i]
+            // ] = target_address_arr[i];
         }
     }
 
@@ -694,24 +660,24 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         // TODO 1 change to gas less
         // TODO 2 one day limit check
         for (uint256 i = 0; i < token_ids.length; i++) {
-            require(
-                ICarvProtocolNFT(nft_address).ownerOf(token_ids[i]) ==
-                    msg.sender,
-                "CarvProtocolService: not owner"
-            );
-            require(
-                _verifier_delegate_addresss_map[msg.sender][token_ids[i]] !=
-                    address(0),
-                "has not ben been deplegtade yet"
-            );
-            address old_delegated_address = _verifier_delegate_addresss_map[
-                msg.sender
-            ][token_ids[i]];
+            // require(
+            //     ICarvProtocolNFT(nft_address).ownerOf(token_ids[i]) ==
+            //         msg.sender,
+            //     "CarvProtocolService: not owner"
+            // );
+            // require(
+            //     _verifier_delegate_addresss_map[msg.sender][token_ids[i]] !=
+            //         address(0),
+            //     "has not ben been deplegtade yet"
+            // );
+            // address old_delegated_address = _verifier_delegate_addresss_map[
+            //     msg.sender
+            // ][token_ids[i]];
 
-            _verifier_weight_changed(old_delegated_address, msg.sender);
-            _verifier_delegate_addresss_map[msg.sender][token_ids[i]] = address(
-                0
-            );
+            // _verifier_weight_changed(old_delegated_address, msg.sender);
+            // _verifier_delegate_addresss_map[msg.sender][token_ids[i]] = address(
+            //     0
+            // );
         }
     }
 
@@ -775,15 +741,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         return false;
     }
 
-    /**
-        @notice verifier_undelegate
-     */
-    function _verifier_weight_changed(address from, address to) internal {
-        address_vote_weight[from]--;
-        address_vote_weight[to]++;
-        emit VerifierWeightChanged(from, to);
-    }
-
     // ================== override functions ==================
     function supportsInterface(
         bytes4 interfaceId
@@ -804,7 +761,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
         // make sure signature is valid and get the address of the signer
         address _signer = _open_verifier_node_recover(verifier_data, signature);
-        address _nft_owner = CarvProtocolNFT(_nft_address).ownerOf(verifier_data.token_id);
+        address _nft_owner = ICarvProtocolNFT(nft_address).ownerOf(verifier_data.token_id);
         require(_signer == verifier_data.account, "verify the signature failed");
         require(_signer == _nft_owner, "verify the nft owner failed");
 
