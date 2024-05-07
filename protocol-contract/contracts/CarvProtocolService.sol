@@ -317,10 +317,10 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         );
 
         // make sure run once a day
-        require(
-            block.timestamp >= delegate_data.timestamp + DAY_IN_SECONDS,
-            "CarvProtocolService: can only be sumbited once a day"
-        );
+        // require(
+        //     block.timestamp >= delegate_data.timestamp + DAY_IN_SECONDS,
+        //     "CarvProtocolService: can only be sumbited once a day"
+        // );
 
         require(
             _verifier_delegate_addresss_map[delegate_data.from][
@@ -363,10 +363,10 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         );
 
         // make sure run once a day
-        require(
-            block.timestamp >= delegate_data.timestamp + DAY_IN_SECONDS,
-            "CarvProtocolService: can only be sumbited once a day"
-        );
+        // require(
+        //     block.timestamp >= delegate_data.timestamp + DAY_IN_SECONDS,
+        //     "CarvProtocolService: can only be sumbited once a day"
+        // );
 
         address old_delegated_address = _verifier_delegate_addresss_map[
             delegate_data.from
@@ -402,10 +402,10 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         require(_signer == delegate_data.from, "verify the signature failed");
 
         // make sure run once a day
-        require(
-            block.timestamp >= delegate_data.timestamp + DAY_IN_SECONDS,
-            "CarvProtocolService: can only be sumbited once a day"
-        );
+        // require(
+        //     block.timestamp >= delegate_data.timestamp + DAY_IN_SECONDS,
+        //     "CarvProtocolService: can only be sumbited once a day"
+        // );
 
         address old_delegated_address = _verifier_delegate_addresss_map[
             delegate_data.from
@@ -678,10 +678,10 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         require(_signer == _nft_owner, "verify the nft owner failed");
 
         // make sure run once a day
-        require(
-            block.timestamp >= verifier_data.timestamp + DAY_IN_SECONDS,
-            "can only be sumbited once a day"
-        );
+        // require(
+        //     block.timestamp >= verifier_data.timestamp + DAY_IN_SECONDS,
+        //     "can only be sumbited once a day"
+        // );
 
         // recode the verifier open status
         _verifier_node_is_open_map[verifier_data.token_id] = true;
