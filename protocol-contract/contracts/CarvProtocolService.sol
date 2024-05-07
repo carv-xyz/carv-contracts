@@ -273,10 +273,9 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     //TODO Mainnet must remove;
     function mint(address _to) external {
         ICarvProtocolNFT(nft_address).mint(_to, _cur_token_id);
-
+        emit Minted(_to, _cur_token_id);
         address_vote_weight[_to]++;
         _cur_token_id++;
-        emit Minted(_to, _cur_token_id);
     }
 
     /**
@@ -416,6 +415,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         _verifier_delegate_addresss_map[delegate_data.from][
             delegate_data.tokenId
         ] = address(0);
+        emit VerifierWeightChanged(delegate_data.from, delegate_data.to);
     }
 
     /**
@@ -546,11 +546,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
             pay_platform_profit();
             attestation_id_result_map[attestation_id] = result;
         }
-
-        require(
-            verifier_block[msg.sender] < block.number,
-            "CarvProtocolService: verifier block is invalid"
-        );
 
         verifier_block[msg.sender] = block.number;
 
