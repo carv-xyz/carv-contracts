@@ -9,30 +9,6 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
 
     bool public can_transfer;
 
-    modifier only_admin() {
-        _only_admin();
-        _;
-    }
-
-    function _only_admin() private view {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "sender doesn't have admin role"
-        );
-    }
-
-    modifier only_minters() {
-        _only_minters();
-        _;
-    }
-
-    function _only_minters() private view {
-        require(
-            hasRole(MINETR_ROLE, msg.sender),
-            "sender doesn't have minter role"
-        );
-    }
-
     /**
         @notice Initializes CompaignsService, creates and grants {msg.sender} the admin role,
      */
@@ -44,7 +20,8 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
         can_transfer = false;
         __ERC721_init(_name, _symbol);
 
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        __AccessControl_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function supportsInterface(
@@ -59,14 +36,17 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
         return super.supportsInterface(interfaceId);
     }
 
-    function mint(address _to, uint256 _tokenId) external only_minters {
+    function mint(
+        address _to,
+        uint256 _tokenId
+    ) external onlyRole(MINETR_ROLE) {
         super._mint(_to, _tokenId);
     }
 
     function batchMint(
         address[] calldata _receivers,
         uint256 _tokenIdStart
-    ) external only_minters {
+    ) external onlyRole(MINETR_ROLE) {
         for (uint256 i = 0; i < _receivers.length; i++) {
             super._mint(_receivers[i], _tokenIdStart + i);
         }
@@ -100,11 +80,9 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
     /**
         @notice set_can_transfer
      */
-    function set_can_transfer(bool _can_transfer) external only_admin {
+    function set_can_transfer(
+        bool _can_transfer
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         can_transfer = _can_transfer;
-    }
-
-    function add_minter_role(address _minter_address) external only_admin {
-        _setupRole(MINETR_ROLE, _minter_address);
     }
 }

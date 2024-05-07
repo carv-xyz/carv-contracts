@@ -75,17 +75,34 @@ const deployProxy = async (logicContract, proxyAdmin) => {
 }
 
 const initNFTContract = async (contractIns, name, symbol) => {
-  const initRes = await contractIns.initialize(name, symbol);
+  const nftProxyIns = await hre.ethers.getContractAt("CarvProtocolNFT", contractIns.address);
+  const initRes = await nftProxyIns.initialize(name, symbol);
   await initRes.wait();
   console.log("CarvProtocol Contract initialized: ", initRes.hash);
   await writeConfig(configFile, configFile, "INIT_NFT_Contract" + chainId, initRes.hash);
 }
 
 const initCARVProtocolContract = async (contractIns, vaultAddress, nftAddress) => {
-  const initRes = await contractIns.initialize(vaultAddress, nftAddress, hre.network.config.chainId);
+  const carvProtocolIns = await hre.ethers.getContractAt("CarvProtocolService", contractIns.address);
+  const initRes = await carvProtocolIns.initialize(vaultAddress, nftAddress, hre.network.config.chainId);
   await initRes.wait();
   console.log("CarvProtocol Contract initialized: ", initRes.hash);
   await writeConfig(configFile, configFile, "INIT_CARV_PROTOCOL_Contract" + chainId, initRes.hash);
+}
+
+const nftOperation = async (nftProxyAddress, toAddress, role) => {
+  // grandRole
+  const nftProxyIns = await hre.ethers.getContractAt("CarvProtocolNFT", nftProxyAddress);
+  const grandRoleRes = await nftProxyIns.grantRole(role, toAddress);
+  console.log(`Grant MINTER_ROLE to ${toAddress} : `, grandRoleRes.hash);
+
+}
+
+const mint = async (nftProxyAddress, toAddress) => {
+  const nftProxyIns = await hre.ethers.getContractAt("CarvProtocolNFT", nftProxyAddress);
+  const mintRes = await nftProxyIns.mint(toAddress);
+  console.log(`Mint NFT to ${toAddress} : `, mintRes.hash);
+
 }
 
 async function main () {
@@ -100,12 +117,14 @@ async function main () {
   const nft = await deployCARVNFT();
   const proxyAdmin = await deployProxyAdmin();
   const proxy = await deployProxy(nft.address, proxyAdmin.address);
-  await initNFTContract(nft, "CARVProtocolNft", "CNFT");
+  await initNFTContract(proxy, "CARVProtocolNft", "CNFT");
 
   const vault = await deployCARVault(usdt.address);
   const carvProtocolIns = await deployCarvProtocol();
   const proxy2 = await deployProxy(carvProtocolIns.address, proxyAdmin.address);
-  await initCARVProtocolContract(carvProtocolIns, vault.address, nft.address);
+  await initCARVProtocolContract(proxy2, vault.address, proxy.address);
+
+  await nftOperation(proxy.address, proxy2.address, "0x894106d7f75745d0351b88f31e48b7fdae7db2b459162bf05a6d9ecf3a8063d5");
   console.log(
     "=== Deployment complete, chain:",
     chalk.yellow.bgBlack.bold(hre.network.name),
