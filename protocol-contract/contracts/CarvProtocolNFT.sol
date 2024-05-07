@@ -27,7 +27,6 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
     }
 
     function _only_minters() private view {
-
         require(
             hasRole(MINETR_ROLE, msg.sender),
             "sender doesn't have minter role"
@@ -38,7 +37,7 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
         @notice Initializes CompaignsService, creates and grants {msg.sender} the admin role,
      */
 
-    function __CarvProtocolNFT_init(
+    function initialize(
         string memory _name,
         string memory _symbol
     ) public initializer {
@@ -62,6 +61,15 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
 
     function mint(address _to, uint256 _tokenId) external only_minters {
         super._mint(_to, _tokenId);
+    }
+
+    function batchMint(
+        address[] calldata _receivers,
+        uint256 _tokenIdStart
+    ) external only_minters {
+        for (uint256 i = 0; i < _receivers.length; i++) {
+            super._mint(_receivers[i], _tokenIdStart + i);
+        }
     }
 
     function safeTransferFrom(
@@ -89,15 +97,12 @@ contract CarvProtocolNFT is ERC721Upgradeable, AccessControlUpgradeable {
         require(can_transfer, "can not support transfer");
     }
 
-
     /**
         @notice set_can_transfer
      */
     function set_can_transfer(bool _can_transfer) external only_admin {
-
         can_transfer = _can_transfer;
     }
-
 
     function add_minter_role(address _minter_address) external only_admin {
         _setupRole(MINETR_ROLE, _minter_address);

@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract CarvVault is Ownable, ICarvVault {
-    address public platformAddress;
     address public carvTokenAddress;
 
     mapping(address => Profit) public serviceProfit;
@@ -21,13 +20,8 @@ contract CarvVault is Ownable, ICarvVault {
         _;
     }
 
-    constructor(address _platformAddress, address _CarvTokenAddress) {
-        platformAddress = _platformAddress;
+    constructor(address _CarvTokenAddress) {
         carvTokenAddress = _CarvTokenAddress;
-    }
-
-    function setPlatformAddress(address _platformAddress) public onlyOwner {
-        platformAddress = _platformAddress;
     }
 
     function setCarvAddress(address _carvTokenAddress) public onlyOwner {

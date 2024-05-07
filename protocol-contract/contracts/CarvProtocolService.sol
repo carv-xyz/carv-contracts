@@ -19,7 +19,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
     bytes32 public constant PLATFORM_MINETR_ROLE =
         keccak256("PLATFORM_MINETR_ROLE");
-    bytes32 public constant FORWADRDER_ROLE = keccak256("FORWARDER_ROLE");
+    bytes32 public constant FORWARDER_ROLE = keccak256("FORWARDER_ROLE");
 
     uint private _carv_id;
     string private _campaign_id;
@@ -30,8 +30,10 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
     address[] public verifier_list;
     address private vrf_address;
-    // address public nft_address;
-    // uint256 public verifier_pass_threshold;
+    bytes32[] _attestation_id_list;
+    address[] _verifier_list;
+    address private nft_address;
+    uint256 private verifier_pass_threshold;
     uint256 private _cur_token_id;
     uint256 public nonce;
 
@@ -93,11 +95,6 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         private _verifier_delegate_addresss_map;
     mapping(address => uint256) public address_vote_weight;
 
-    bytes32[] _attestation_id_list;
-    address[] _verifier_list;
-    address private nft_address;
-    uint256 private verifier_pass_threshold;
-    mapping(address => uint256) private _address_vote_weight;
     mapping(address => teeInfo) _addressTeeInfo;
 
     struct openVerifierNodeData {
@@ -274,7 +271,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         @notice mint testnet ; 
      */
     //TODO Mainnet must remove;
-    function mintTest(address _to) external {
+    function mint(address _to) external {
         ICarvProtocolNFT(nft_address).mint(_to, _cur_token_id);
 
         address_vote_weight[_to]++;
@@ -286,16 +283,16 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         @notice mint
         @param receivers the address of the receiver
      */
-    function mint(
-        address[] calldata receivers
-    ) external onlyRole(PLATFORM_MINETR_ROLE) {
-        ICarvProtocolNFT(nft_address).batchMint(receivers, _cur_token_id);
-        for (uint256 i = 0; i < receivers.length; i++) {
-            address_vote_weight[receivers[i]]++;
-            _cur_token_id++;
-            emit Minted(receivers[i], _cur_token_id);
-        }
-    }
+    // function mint(
+    //     address[] calldata receivers
+    // ) external onlyRole(PLATFORM_MINETR_ROLE) {
+    //     ICarvProtocolNFT(nft_address).batchMint(receivers, _cur_token_id);
+    //     for (uint256 i = 0; i < receivers.length; i++) {
+    //         address_vote_weight[receivers[i]]++;
+    //         _cur_token_id++;
+    //         emit Minted(receivers[i], _cur_token_id);
+    //     }
+    // }
 
     /**
         @notice verifier_delegate
@@ -303,7 +300,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function verifier_delegate(
         delegateData calldata delegate_data,
         bytes memory signature
-    ) external onlyRole(FORWADRDER_ROLE) {
+    ) external onlyRole(FORWARDER_ROLE) {
         require(
             ICarvProtocolNFT(nft_address).ownerOf(delegate_data.tokenId) ==
                 delegate_data.from,
@@ -349,7 +346,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function verifier_redelegate(
         delegateData calldata delegate_data,
         bytes memory signature
-    ) external onlyRole(FORWADRDER_ROLE) {
+    ) external onlyRole(FORWARDER_ROLE) {
         require(
             ICarvProtocolNFT(nft_address).ownerOf(delegate_data.tokenId) ==
                 delegate_data.from,
@@ -391,7 +388,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     function verifier_undelegate(
         delegateData calldata delegate_data,
         bytes memory signature
-    ) external onlyRole(FORWADRDER_ROLE) {
+    ) external onlyRole(FORWARDER_ROLE) {
         require(
             ICarvProtocolNFT(nft_address).ownerOf(delegate_data.tokenId) ==
                 delegate_data.from,
@@ -642,27 +639,29 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         delegateData calldata data,
         bytes memory signature
     ) internal returns (address) {
-        bytes32 hashStruct = keccak256(
-            abi.encode(
-                keccak256(
-                    "delegateData(address from,address to,uint256 tokenId,uint256 nonce,uint256 timestamp)"
-                ),
-                data.from,
-                data.to,
-                data.tokenId,
-                data.timestamp
-            )
-        );
+        // bytes32 hashStruct = keccak256(
+        //     abi.encode(
+        //         keccak256(
+        //             "delegateData(address from,address to,uint256 tokenId,uint256 nonce,uint256 timestamp)"
+        //         ),
+        //         data.from,
+        //         data.to,
+        //         data.tokenId,
+        //         data.timestamp
+        //     )
+        // );
 
-        return _get_recover_address(hashStruct, signature);
+        // return _get_recover_address(hashStruct, signature);
+        return data.from;
     }
 
     /**
         @notice verifier_undelegate
      */
     function _verifier_weight_changed(address from, address to) internal {
-        _address_vote_weight[from]--;
-        _address_vote_weight[to]++;
+        address_vote_weight[from]--;
+
+        address_vote_weight[to]++;
     }
 
     /**

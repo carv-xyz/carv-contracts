@@ -47,13 +47,13 @@ describe(`main process`, () => {
       deployer, "CarvProtocolNFT", "CarvProtocolNFT", "CNT"
     );
 
-    campaignsServiceContract = await deployUpgradeContract(
-      deployer, "CarvProtocolService", usdtContract.address,
-      nftCarvProtocolContract.address
-    );
 
     // deploy carv vault
     carvVaultContract = await deployContract(deployer, "CarvVault", deployer.address, usdtContract.address);
+
+    campaignsServiceContract = await deployUpgradeContract(
+      deployer, "CarvProtocolService", carvVaultContract.address, nftCarvProtocolContract.address, 1000
+    );
 
     let isSucess = await isContractTransferSuccess(
       await usdtContract.connect(partner).approve(campaignsServiceContract.address, amount)
@@ -284,16 +284,15 @@ describe(`main process`, () => {
 
   // function report_tee_attestation(string calldata campaign_id,string calldata attestation) external only_tees{ 
   it('4.TEE report tee attestation', async function () {
-
     let isSucess = await isContractTransferSuccess(
-      await campaignsServiceContract.connect(deployer).add_tee_role(tee.address),
+      await campaignsServiceContract.connect(deployer).grantRole(ethers.utils.id("TEE_ROLE"), tee.address),
       await campaignsServiceContract.connect(tee).report_tee_attestation(
         campaign_id, "xyz 1234")
     )
 
     if (isSucess) {
-      let proofs = await campaignsServiceContract.get_proof_list()
-      // console.log(proofs);
+      let proofs = await campaignsServiceContract.get_proof_list(0, 1)
+      console.log(proofs);
       assert.equal(proofs[0], "0x04687ed6a16affd383bc95916f149ff3098584a0ab1f746f894a52d79c72262b")
     }
 
@@ -318,8 +317,10 @@ describe(`main process`, () => {
     const bal = await nftCarvProtocolContract.balanceOf(deployer.address);
     let weight = await campaignsServiceContract.address_vote_weight(deployer.address);
     assert.equal(bal.toNumber(), weight.toNumber());
-
-    await campaignsServiceContract.connect(deployer).verifier_delegate([v1.address], [1]);
+    console.log(bal, weight)
+    // Set Forworder Role
+    await campaignsServiceContract.connect(deployer).grantRole(ethers.utils.id("FORWARDER_ROLE"), deployer.address);
+    await campaignsServiceContract.connect(deployer).verifier_delegate([deployer.address, v1.address, 1, 1, 1], [1]);
     const bal1 = await nftCarvProtocolContract.balanceOf(v1.address);
     const weight1 = await campaignsServiceContract.address_vote_weight(v1.address);
 

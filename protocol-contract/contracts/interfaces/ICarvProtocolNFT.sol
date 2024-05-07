@@ -6,5 +6,10 @@ interface ICarvProtocolNFT {
 
     function mint(address _to, uint256 _tokenId) external;
 
+    function batchMint(
+        address[] calldata _receivers,
+        uint256 _tokenIdStart
+    ) external;
+
     function ownerOf(uint256 _tokenId) external view returns (address);
 }
