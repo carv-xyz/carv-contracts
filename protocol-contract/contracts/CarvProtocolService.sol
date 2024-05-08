@@ -12,29 +12,29 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 
 contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
-    address public vault_address;
-    address private _admin_address;
-
     bytes32 public constant TEE_ROLE = keccak256("TEE_ROLE");
     bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
     bytes32 public constant PLATFORM_MINETR_ROLE =
         keccak256("PLATFORM_MINETR_ROLE");
     bytes32 public constant FORWARDER_ROLE = keccak256("FORWARDER_ROLE");
 
-    uint private _carv_id;
-    string private _campaign_id;
-    string private _campaign_info;
+    address public vault_address;
+    address public _admin_address;
+
+    uint public _carv_id;
+    string public _campaign_id;
+    string public _campaign_info;
 
     bytes32[] public attestation_id_list;
     mapping(bytes32 => bool) public attestation_id_map;
 
     address[] public verifier_list;
-    address private vrf_address;
+    address public vrf_address;
     bytes32[] _attestation_id_list;
     address[] _verifier_list;
-    address private nft_address;
-    uint256 private verifier_pass_threshold;
-    uint256 private _cur_token_id;
+    address public nft_address;
+    uint256 public verifier_pass_threshold;
+    uint256 public _cur_token_id;
     uint256 public nonce;
 
     struct reward {
@@ -273,8 +273,9 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     //TODO Mainnet must remove;
     function mint(address _to) external {
         ICarvProtocolNFT(nft_address).mint(_to, _cur_token_id);
-        emit Minted(_to, _cur_token_id);
         address_vote_weight[_to]++;
+        emit Minted(_to, _cur_token_id);
+
         _cur_token_id++;
     }
 
@@ -288,8 +289,8 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
     //     ICarvProtocolNFT(nft_address).batchMint(receivers, _cur_token_id);
     //     for (uint256 i = 0; i < receivers.length; i++) {
     //         address_vote_weight[receivers[i]]++;
-    //         _cur_token_id++;
     //         emit Minted(receivers[i], _cur_token_id);
+    //         _cur_token_id++;
     //     }
     // }
 
@@ -415,6 +416,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         _verifier_delegate_addresss_map[delegate_data.from][
             delegate_data.tokenId
         ] = address(0);
+
         emit VerifierWeightChanged(delegate_data.from, delegate_data.to);
     }
 
@@ -543,7 +545,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
 
         _attestation_id_verifiers_map[attestation_id].push(msg.sender);
         if (_is_verifer_sign_enough(attestation_id) && result) {
-            pay_platform_profit();
+            pay_platform_profit(msg.sender);
             attestation_id_result_map[attestation_id] = result;
         }
 
@@ -557,7 +559,7 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         bool[] calldata results
     ) external {
         require(
-            ICarvProtocolNFT(nft_address).address_vote_weight(msg.sender) > 0,
+            address_vote_weight[msg.sender] > 0,
             "CarvProtocolService: no vote weight"
         );
 
@@ -567,25 +569,26 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
                 attestation_id_map[attestation_ids[i]],
                 "attestation is not exist"
             );
-            attestation_id_result_map[attestation_ids[i]] = results[i];
             _attestation_id_verifiers_map[attestation_ids[i]].push(msg.sender);
             if (_is_verifer_sign_enough(attestation_ids[i])) {
-                pay_platform_profit();
+                pay_platform_profit(msg.sender);
                 attestation_id_result_map[attestation_ids[i]] = results[i];
             }
         }
+
+        verifier_block[msg.sender] = block.number;
 
         emit VerifyAttestationBatch(msg.sender, attestation_ids, results);
     }
 
     // ================== internal functions ==================
 
-    function pay_platform_profit() internal {
+    function pay_platform_profit(address receiver) internal {
         uint256 profitAmount = ICarvVault(vault_address).getServiceProfit(
-            msg.sender
+            address(this)
         );
 
-        ICarvVault(vault_address).withdrawProfit(msg.sender);
+        ICarvVault(vault_address).withdrawProfit(receiver);
 
         emit ProfixPayed(
             vault_address,
@@ -654,6 +657,10 @@ contract CarvProtocolService is ERC7231, AccessControlUpgradeable {
         @notice verifier_undelegate
      */
     function _verifier_weight_changed(address from, address to) internal {
+        require(
+            address_vote_weight[from] > 0,
+            "CarvProtocolService: from vote weight is invalid"
+        );
         address_vote_weight[from]--;
 
         address_vote_weight[to]++;

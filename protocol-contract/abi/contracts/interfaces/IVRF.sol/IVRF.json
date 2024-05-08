@@ -1,0 +1,26 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "gammaX",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "gammaY",
+        "type": "uint256"
+      }
+    ],
+    "name": "gammaToHash",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  }
+]

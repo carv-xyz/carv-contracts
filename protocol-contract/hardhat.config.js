@@ -1,13 +1,16 @@
 require('@nomiclabs/hardhat-ethers')
-// require('@nomiclabs/hardhat-waffle')
 require('hardhat-deploy')
-// require("@nomiclabs/hardhat-etherscan");
-// require("@nomicfoundation/hardhat-verify");
+require("@nomiclabs/hardhat-etherscan");
 require('@openzeppelin/hardhat-upgrades');
-// require("@nomicfoundation/hardhat-toolbox")
+require("hardhat-abi-exporter");
+require('hardhat-contract-sizer');
 
+require("./tasks/flattener");
 const dotenv = require("dotenv");
 dotenv.config({ path: __dirname + '/.env' });
+
+const OPBNB_VERIFY_KEY = process.env.OPBNB_VERIFY_KEY;
+const ARBITRUM_SEPOLIA_KEY = process.env.ARBITRUM_SEPOLIA_KEY;
 module.exports = {
 
   networks: {
@@ -28,20 +31,20 @@ module.exports = {
       allowUnlimitedContractSize: true,
 
     },
-    hardhat:{
-      chainId:100,
+    hardhat: {
+      chainId: 100,
       accounts:
-      [
-        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000001",balance:"10000000000000000000000" },
-        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000002",balance:"10000000000000000000000" },
-        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000003",balance:"10000000000000000000000" },
-        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000004",balance:"10000000000000000000000" },
-        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000005",balance:"10000000000000000000000" },
-        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000006",balance:"10000000000000000000000" },
-        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000007",balance:"10000000000000000000000" },
-        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000008",balance:"10000000000000000000000" },
-        { privateKey:"0x0000000000000000000000000000000000000000000000000000000000000009",balance:"10000000000000000000000" },
-      ],
+        [
+          { privateKey: "0x0000000000000000000000000000000000000000000000000000000000000001", balance: "10000000000000000000000" },
+          { privateKey: "0x0000000000000000000000000000000000000000000000000000000000000002", balance: "10000000000000000000000" },
+          { privateKey: "0x0000000000000000000000000000000000000000000000000000000000000003", balance: "10000000000000000000000" },
+          { privateKey: "0x0000000000000000000000000000000000000000000000000000000000000004", balance: "10000000000000000000000" },
+          { privateKey: "0x0000000000000000000000000000000000000000000000000000000000000005", balance: "10000000000000000000000" },
+          { privateKey: "0x0000000000000000000000000000000000000000000000000000000000000006", balance: "10000000000000000000000" },
+          { privateKey: "0x0000000000000000000000000000000000000000000000000000000000000007", balance: "10000000000000000000000" },
+          { privateKey: "0x0000000000000000000000000000000000000000000000000000000000000008", balance: "10000000000000000000000" },
+          { privateKey: "0x0000000000000000000000000000000000000000000000000000000000000009", balance: "10000000000000000000000" },
+        ],
       blockGasLimit: 8000000
     },
 
@@ -68,7 +71,7 @@ module.exports = {
     //opbnb Testnet
     opbnb:
     {
-      url: `https://opbnb-testnet-rpc.bnbchain.org`,
+      url: `https://opbnb-testnet.nodereal.io/v1/9e210feafbec4ed9bd48f855c2bd979a`,
       chainId: 5611, // Replace with the correct chainId for the "opbnb" network
       accounts:
         [
@@ -109,7 +112,7 @@ module.exports = {
       },
       {
         version: "0.6.12",
-        settings: { 
+        settings: {
           optimizer: {
             enabled: true,
             runs: 1
@@ -131,10 +134,15 @@ module.exports = {
       }
     }
   },
+  abiExporter: {
+    runOnCompile: true,
+    clear: true
+  },
 
   etherscan: {
     apiKey: {
-      opbnb: "80d774115b27420e93a1e8fd90c86860"
+      opbnb: OPBNB_VERIFY_KEY,
+      arbitrumSepolia: ARBITRUM_SEPOLIA_KEY,
     },
 
     customChains: [
@@ -143,10 +151,20 @@ module.exports = {
         chainId: 5611, // Replace with the correct chainId for the "opbnb" network
         urls: {
           apiURL:
-            "https://open-platform.nodereal.io/80d774115b27420e93a1e8fd90c86860/op-bnb-testnet/contract/",
+            `https://open-platform.nodereal.io/${OPBNB_VERIFY_KEY}/op-bnb-testnet/contract/`,
           browserURL: "https://testnet.opbnbscan.com/",
         },
       },
+      {
+        network: "arbitrumSepolia",
+        chainId: 421614,
+        urls: {
+          apiURL:
+            "https://api-sepolia.arbiscan.io/api",
+          browserURL: "https://sepolia.arbiscan.io/",
+        },
+      },
+
     ],
   }
 }
