@@ -15,7 +15,6 @@ contract TestERC20 is ERC20 {
         string memory _symbol,
         uint256 _amount
     ) ERC20(_name, _symbol) {
-
         _mint(msg.sender, _amount * 10 ** decimals());
     }
 
@@ -32,8 +31,7 @@ contract TestERC20 is ERC20 {
      * no way affects any of the arithmetic of the contract, including
      * {IERC20-balanceOf} and {IERC20-transfer}.
      */
-    function decimals() override public pure returns (uint8) {
-        return 6;
+    function decimals() public pure override returns (uint8) {
+        return 18;
     }
-
 }
